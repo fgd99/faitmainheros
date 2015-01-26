@@ -1,7 +1,7 @@
+*.sdf
+*.suo
 build/
 misc/Debug/
 misc/faitmain/Debug/
-misc/VS2010_faitmain.sdf
-misc/VS2010_faitmain.suo
-misc/ipch/faitmain-b05e58b3/faitmain-d3105d75.ipch
-*.suo
+misc/ipch/
+misc/VS2013_faitmain/Debug/
