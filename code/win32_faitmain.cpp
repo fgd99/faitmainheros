@@ -7,14 +7,48 @@
 
 // variable globale pour le moment, on gèrera autrement plus tard
 global_variable bool Running;
+global_variable BITMAPINFO BitmapInfo;
 
-/*
-  DIB: Device Independent Bitmap
-*/
-internal void ResizeDIBSection() {
+/**
+ * DIB: Device Independent Bitmap
+ **/
+internal void Win32ResizeDIBSection(int Width, int Height) {
+  BITMAPINFO BitmapInfo;
+  BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
+  BitmapInfo.bmiHeader.biWidth = Width;
+  BitmapInfo.bmiHeader.biHeight = Height;
+  BitmapInfo.bmiHeader.biPlanes = 1;
+  BitmapInfo.bmiHeader.biBitCount = 32;
+  BitmapInfo.bmiHeader.biCompression = BI_RGB;
+  BitmapInfo.bmiHeader.biSizeImage = 0;
+  BitmapInfo.bmiHeader.biXPelsPerMeter = 0;
+  BitmapInfo.bmiHeader.biYPelsPerMeter = 0;
+  BitmapInfo.bmiHeader.biClrUsed = 0;
+  BitmapInfo.bmiHeader.biClrImportant = 0;
+  /*
+  HBITMAP BitMapHandle = CreateDIBSection(
+    DeviceContext,
+    &BitmapInfo,
+    DIB_RGB_COLORS,
+    &BitmapMemory,
+    0,
+    0);
+    */
 }
 
-LRESULT CALLBACK MainWindowCallback(
+internal void Win32UpdateWindow(HDC DeviceContext, int X, int Y, int Width, int Height) {
+  /*StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
+    DeviceContext,
+    X, Y, Width, Height,
+    X, Y, Width, Height,
+    const VOID *lpBits,
+    const BITMAPINFO *lpBitsInfo,
+    DIB_RGB_COLORS,
+    SRCCOPY // BitBlt: bit-block transfer of the color data => voir les autres modes dans la MSDN
+  );*/
+}
+
+LRESULT CALLBACK Win32MainWindowCallback(
   HWND Window,
   UINT Message,
   WPARAM WParam,
@@ -25,6 +59,11 @@ LRESULT CALLBACK MainWindowCallback(
   {
     case WM_SIZE:
       {
+        RECT ClientRect;
+        GetClientRect(Window, &ClientRect);
+        int Width = ClientRect.right - ClientRect.left;
+        int Height = ClientRect.bottom - ClientRect.top;
+        Win32ResizeDIBSection(Width, Height);
         OutputDebugStringA("WM_SIZE\n");
       }
       break;
@@ -55,6 +94,7 @@ LRESULT CALLBACK MainWindowCallback(
         int Y = Paint.rcPaint.top;
         int Width = Paint.rcPaint.right - Paint.rcPaint.left;
         int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
+        Win32UpdateWindow(DeviceContext, X, Y, Width, Height);
         local_persist DWORD Operation = WHITENESS; // Une variable statique est pratique pour le debug, mais ce n'est pas thread safe et c'est une variable globale...
         PatBlt(DeviceContext, X, Y, Width, Height, Operation);
         if (Operation == WHITENESS)
@@ -85,7 +125,7 @@ int CALLBACK WinMain(
   WNDCLASSA WindowClass = {}; // initialisation par défaut, ANSI version de WNDCLASSA
   // On ne configure que les membres que l'on veut
   WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
-  WindowClass.lpfnWndProc = MainWindowCallback;
+  WindowClass.lpfnWndProc = Win32MainWindowCallback;
   WindowClass.hInstance = Instance;
   // WindowClass.hIcon;
   WindowClass.lpszClassName = "FaitmainHerosWindowClass"; // nom pour retrouver la fenêtre
