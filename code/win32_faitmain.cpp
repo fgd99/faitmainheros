@@ -1,5 +1,19 @@
 #include <Windows.h>
 
+// Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
+#define internal static // fonctions non visible depuis l'extérieur de ce fichier
+#define local_persist static     // variable visibles juste dans le scope où elle définie
+#define global_variable static   // variable visible dans tous le fichiers (globale)
+
+// variable globale pour le moment, on gèrera autrement plus tard
+global_variable bool Running;
+
+/*
+  DIB: Device Independent Bitmap
+*/
+internal void ResizeDIBSection() {
+}
+
 LRESULT CALLBACK MainWindowCallback(
   HWND Window,
   UINT Message,
@@ -16,11 +30,15 @@ LRESULT CALLBACK MainWindowCallback(
       break;
     case WM_DESTROY:
       {
+        // PostQuitMessage(0); // Va permettre de sortir de la boucle infinie en dessous
+        Running = false;
         OutputDebugStringA("WM_DESTROY\n");
       }
       break;
     case WM_CLOSE:
       {
+        // DestroyWindow(Window);
+        Running = false;
         OutputDebugStringA("WM_CLOSE\n");
       }
       break;
@@ -37,7 +55,7 @@ LRESULT CALLBACK MainWindowCallback(
         int Y = Paint.rcPaint.top;
         int Width = Paint.rcPaint.right - Paint.rcPaint.left;
         int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
-        static DWORD Operation = WHITENESS; // Une variable statique est pratique pour le debug, mais ce n'est pas thread safe et c'est une variable globale...
+        local_persist DWORD Operation = WHITENESS; // Une variable statique est pratique pour le debug, mais ce n'est pas thread safe et c'est une variable globale...
         PatBlt(DeviceContext, X, Y, Width, Height, Operation);
         if (Operation == WHITENESS)
           Operation = BLACKNESS;
@@ -91,13 +109,17 @@ int CALLBACK WinMain(
     );
     if (WindowHandle) {
       MSG Message;
-      for (;;) { // boucle infinie pour traiter tous les messages
+      Running = true;
+      while (Running) { // boucle infinie pour traiter tous les messages
         BOOL MessageResult = GetMessage(&Message, 0, 0, 0); // On demande à Windows de nous donner le prochain message de la queue de message
         if (MessageResult > 0) {
           TranslateMessage(&Message); // On demande à Windows de traiter le message
           DispatchMessage(&Message); // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
         } else {
-          break; // On arrête la boucle infinie en cas de problème
+          break; // On arrête la boucle infinie en cas de problème, ou bien si PostQuitMessage(0) est appelé par exemple au dessus
+          // On ne libère pas manuellement les ressources, comme la fenêtre par exemple,
+          // car en quittant Windows va faire le ménage, et ce sera plus rapide visuellement pour
+          // l'utilisateur (la fenêtre va se fermer immédiatement, sans temps mort).
         }
       }
     } else {
