@@ -37,7 +37,7 @@ LRESULT CALLBACK MainWindowCallback(
         int Y = Paint.rcPaint.top;
         int Width = Paint.rcPaint.right - Paint.rcPaint.left;
         int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
-        static DWORD Operation = WHITENESS;
+        static DWORD Operation = WHITENESS; // Une variable statique est pratique pour le debug, mais ce n'est pas thread safe et c'est une variable globale...
         PatBlt(DeviceContext, X, Y, Width, Height, Operation);
         if (Operation == WHITENESS)
           Operation = BLACKNESS;
@@ -91,13 +91,13 @@ int CALLBACK WinMain(
     );
     if (WindowHandle) {
       MSG Message;
-      for (;;) {
-        BOOL MessageResult = GetMessage(&Message, 0, 0, 0);
+      for (;;) { // boucle infinie pour traiter tous les messages
+        BOOL MessageResult = GetMessage(&Message, 0, 0, 0); // On demande à Windows de nous donner le prochain message de la queue de message
         if (MessageResult > 0) {
-          TranslateMessage(&Message);
-          DispatchMessage(&Message);
+          TranslateMessage(&Message); // On demande à Windows de traiter le message
+          DispatchMessage(&Message); // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
         } else {
-
+          break; // On arrête la boucle infinie en cas de problème
         }
       }
     } else {
