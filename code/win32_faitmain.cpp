@@ -8,12 +8,23 @@
 // variable globale pour le moment, on gèrera autrement plus tard
 global_variable bool Running;
 global_variable BITMAPINFO BitmapInfo;
+global_variable void *BitmapMemory;
+global_variable HBITMAP BitmapHandle;
+global_variable HDC BitmapDeviceContext;
 
 /**
  * DIB: Device Independent Bitmap
  **/
 internal void Win32ResizeDIBSection(int Width, int Height) {
-  BITMAPINFO BitmapInfo;
+  // Ici on supprime l'ancien, mais ce n'est peut-être pas la meilleure façon de faire...
+  // Et lors d'un resize on recrée le nouveau
+  if (BitmapHandle) {
+    DeleteObject(BitmapHandle);
+  }
+  if (!BitmapDeviceContext) {
+    BitmapDeviceContext = CreateCompatibleDC(0);
+  }
+
   BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
   BitmapInfo.bmiHeader.biWidth = Width;
   BitmapInfo.bmiHeader.biHeight = Height;
@@ -25,27 +36,26 @@ internal void Win32ResizeDIBSection(int Width, int Height) {
   BitmapInfo.bmiHeader.biYPelsPerMeter = 0;
   BitmapInfo.bmiHeader.biClrUsed = 0;
   BitmapInfo.bmiHeader.biClrImportant = 0;
-  /*
+    
   HBITMAP BitMapHandle = CreateDIBSection(
-    DeviceContext,
+    BitmapDeviceContext,
     &BitmapInfo,
     DIB_RGB_COLORS,
     &BitmapMemory,
     0,
     0);
-    */
 }
 
 internal void Win32UpdateWindow(HDC DeviceContext, int X, int Y, int Width, int Height) {
-  /*StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
+  StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
     DeviceContext,
     X, Y, Width, Height,
     X, Y, Width, Height,
-    const VOID *lpBits,
-    const BITMAPINFO *lpBitsInfo,
+    BitmapMemory,
+    &BitmapInfo,
     DIB_RGB_COLORS,
     SRCCOPY // BitBlt: bit-block transfer of the color data => voir les autres modes dans la MSDN
-  );*/
+  );
 }
 
 LRESULT CALLBACK Win32MainWindowCallback(
