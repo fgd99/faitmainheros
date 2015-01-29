@@ -26,19 +26,19 @@ RenderWeirdGradient(int XOffset, int YOffset)
   int Width = BitmapWidth;
   int Height = BitmapHeight;
 
-  int Pitch = Width * BytesPerPixel;  
+  int Pitch = Width * BytesPerPixel; // Pitch représente la taille d'une ligne en octets
   uint8 *Row = (uint8 *)BitmapMemory; // on va se déplacer dans la mémoire par pas de 8 bits
   for (int Y = 0; Y < BitmapHeight; ++Y)
   {
-    uint32 *Pixel = (uint32 *)Row; // Pixel par pixel
+    uint32 *Pixel = (uint32 *)Row; // Pixel par pixel, on commence par le premier de la ligne
     for (int X = 0; X < BitmapWidth; ++X)
     {
       /*
         Pixels en little endian architecture
                              0  1  2  3 ...
         Pixels en mémoire : 00 00 00 00 ...
-        Couleur             BB GG RR xx
-        en hexa: 0xxxRRGGBB
+        Couleur             BB GG RR XX
+        en hexa: 0xXXRRGGBB
       */
       uint8 Blue = (X + XOffset);
       uint8 Green = (Y + YOffset);
@@ -46,7 +46,7 @@ RenderWeirdGradient(int XOffset, int YOffset)
       *Pixel = ((Green << 8) | Blue); // ce qui équivaut en hexa à 0x00BBGG00
       ++Pixel; // Façon de faire si on prend pixel par pixel
     }
-    Row += Pitch;
+    Row += Pitch; // Ligne suivante
   }
 }
 
