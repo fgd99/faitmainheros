@@ -1,56 +1,91 @@
 #include <Windows.h>
+#include <stdint.h> // Types indépendent de la plateforme
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
 #define internal static // fonctions non visible depuis l'extérieur de ce fichier
 #define local_persist static     // variable visibles juste dans le scope où elle définie
 #define global_variable static   // variable visible dans tous le fichiers (globale)
 
+typedef unsigned char uint8;
+typedef uint8_t uint8; // comme un unsigned char, un 8 bits
+typedef int16_t uint16;
+typedef int32_t uint32;
+typedef int64_t uint64;
+
 // variable globale pour le moment, on gèrera autrement plus tard
 global_variable bool Running;
 global_variable BITMAPINFO BitmapInfo;
 global_variable void *BitmapMemory;
-global_variable HBITMAP BitmapHandle;
-global_variable HDC BitmapDeviceContext;
+global_variable int BitmapWidth;
+global_variable int BitmapHeight;
+global_variable int BytesPerPixel = 4;
+
+internal void
+RenderWeirdGradient(int XOffset, int YOffset)
+{
+  int Width = BitmapWidth;
+  int Height = BitmapHeight;
+
+  int Pitch = Width * BytesPerPixel;  
+  uint8 *Row = (uint8 *)BitmapMemory; // on va se déplacer dans la mémoire par pas de 8 bits
+  for (int Y = 0; Y < BitmapHeight; ++Y)
+  {
+    uint32 *Pixel = (uint32 *)Row; // Pixel par pixel
+    for (int X = 0; X < BitmapWidth; ++X)
+    {
+      /*
+        Pixels en little endian architecture
+                             0  1  2  3 ...
+        Pixels en mémoire : 00 00 00 00 ...
+        Couleur             BB GG RR xx
+        en hexa: 0xxxRRGGBB
+      */
+      uint8 Blue = (X + XOffset);
+      uint8 Green = (Y + YOffset);
+      // *Pixel = 0xFF00FF00;
+      *Pixel = ((Green << 8) | Blue); // ce qui équivaut en hexa à 0x00BBGG00
+      ++Pixel; // Façon de faire si on prend pixel par pixel
+    }
+    Row += Pitch;
+  }
+}
 
 /**
  * DIB: Device Independent Bitmap
  **/
-internal void Win32ResizeDIBSection(int Width, int Height) {
-  // Ici on supprime l'ancien, mais ce n'est peut-être pas la meilleure façon de faire...
-  // Et lors d'un resize on recrée le nouveau
-  if (BitmapHandle) {
-    DeleteObject(BitmapHandle);
-  }
-  if (!BitmapDeviceContext) {
-    BitmapDeviceContext = CreateCompatibleDC(0);
+internal void
+Win32ResizeDIBSection(int Width, int Height)
+{
+  if (BitmapMemory)
+  {
+    VirtualFree(BitmapMemory, 0, MEM_RELEASE); // cf. VirtualProtect, utile pour debug
   }
 
+  BitmapWidth = Width;
+  BitmapHeight = Height;
+
   BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-  BitmapInfo.bmiHeader.biWidth = Width;
-  BitmapInfo.bmiHeader.biHeight = Height;
+  BitmapInfo.bmiHeader.biWidth = BitmapWidth;
+  BitmapInfo.bmiHeader.biHeight = -BitmapHeight; // Atention au sens des coordonnées
   BitmapInfo.bmiHeader.biPlanes = 1;
   BitmapInfo.bmiHeader.biBitCount = 32;
   BitmapInfo.bmiHeader.biCompression = BI_RGB;
-  BitmapInfo.bmiHeader.biSizeImage = 0;
-  BitmapInfo.bmiHeader.biXPelsPerMeter = 0;
-  BitmapInfo.bmiHeader.biYPelsPerMeter = 0;
-  BitmapInfo.bmiHeader.biClrUsed = 0;
-  BitmapInfo.bmiHeader.biClrImportant = 0;
-    
-  HBITMAP BitMapHandle = CreateDIBSection(
-    BitmapDeviceContext,
-    &BitmapInfo,
-    DIB_RGB_COLORS,
-    &BitmapMemory,
-    0,
-    0);
+  
+  int BitmapMemorySize = (BitmapWidth * BitmapHeight) * BytesPerPixel;
+  BitmapMemory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE); // cf. aussi HeapAlloc  
 }
 
-internal void Win32UpdateWindow(HDC DeviceContext, int X, int Y, int Width, int Height) {
+internal void
+Win32UpdateWindow(HDC DeviceContext, RECT *ClientRect, int X, int Y, int Width, int Height)
+{
+  int WindowWidth = ClientRect->right - ClientRect->left;
+  int WindowHeight = ClientRect->bottom - ClientRect->top;
   StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
     DeviceContext,
-    X, Y, Width, Height,
-    X, Y, Width, Height,
+    /*X, Y, Width, Height,
+    X, Y, Width, Height,*/
+    0, 0, BitmapWidth, BitmapHeight,
+    0, 0, WindowWidth, WindowHeight,
     BitmapMemory,
     &BitmapInfo,
     DIB_RGB_COLORS,
@@ -58,7 +93,8 @@ internal void Win32UpdateWindow(HDC DeviceContext, int X, int Y, int Width, int 
   );
 }
 
-LRESULT CALLBACK Win32MainWindowCallback(
+LRESULT CALLBACK
+Win32MainWindowCallback(
   HWND Window,
   UINT Message,
   WPARAM WParam,
@@ -104,14 +140,11 @@ LRESULT CALLBACK Win32MainWindowCallback(
         int Y = Paint.rcPaint.top;
         int Width = Paint.rcPaint.right - Paint.rcPaint.left;
         int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
-        Win32UpdateWindow(DeviceContext, X, Y, Width, Height);
-        local_persist DWORD Operation = WHITENESS; // Une variable statique est pratique pour le debug, mais ce n'est pas thread safe et c'est une variable globale...
-        PatBlt(DeviceContext, X, Y, Width, Height, Operation);
-        if (Operation == WHITENESS)
-          Operation = BLACKNESS;
-        else
-          Operation = WHITENESS;
-        SetPixel(DeviceContext, 100, 100, RGB(255, 0, 255));
+
+        RECT ClientRect;
+        GetClientRect(Window, &ClientRect);
+
+        Win32UpdateWindow(DeviceContext, &ClientRect, X, Y, Width, Height);
         EndPaint(Window, &Paint);
       }
       break;
@@ -125,7 +158,8 @@ LRESULT CALLBACK Win32MainWindowCallback(
   return(Result);
 }
 
-int CALLBACK WinMain(
+int CALLBACK
+WinMain(
   HINSTANCE Instance,
   HINSTANCE PrevInstance,
   LPSTR CommandLine,
@@ -143,7 +177,7 @@ int CALLBACK WinMain(
   // Ouverture de la fenêtre
   if (RegisterClassA(&WindowClass))
   {
-    HWND WindowHandle = CreateWindowExA( // ANSI version de CreateWindowEx
+    HWND Window = CreateWindowExA( // ANSI version de CreateWindowEx
       0, // dwExStyle : options de la fenêtre
       WindowClass.lpszClassName,
       "FaitmainHeros",
@@ -157,25 +191,43 @@ int CALLBACK WinMain(
       Instance,
       0 // Pas de passage de paramètres à la fenêtre
     );
-    if (WindowHandle) {
+    if (Window)
+    {
+      int XOffset = 0;
+      int YOffset = 0;
       MSG Message;
       Running = true;
-      while (Running) { // boucle infinie pour traiter tous les messages
-        BOOL MessageResult = GetMessage(&Message, 0, 0, 0); // On demande à Windows de nous donner le prochain message de la queue de message
-        if (MessageResult > 0) {
+      while (Running) // boucle infinie pour traiter tous les messages
+      {
+        while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE)) // On utilise PeekMessage au lieu de GetMessage qui est bloquant
+        {
+          if (Message.message == WM_QUIT) Running = false;
           TranslateMessage(&Message); // On demande à Windows de traiter le message
           DispatchMessage(&Message); // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
-        } else {
-          break; // On arrête la boucle infinie en cas de problème, ou bien si PostQuitMessage(0) est appelé par exemple au dessus
-          // On ne libère pas manuellement les ressources, comme la fenêtre par exemple,
-          // car en quittant Windows va faire le ménage, et ce sera plus rapide visuellement pour
-          // l'utilisateur (la fenêtre va se fermer immédiatement, sans temps mort).
         }
+        
+        // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut dessiner ici
+        RenderWeirdGradient(XOffset, YOffset);
+        ++XOffset;
+
+        // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
+        // On en fera une fonction propre
+        HDC DeviceContext = GetDC(Window);
+        RECT ClientRect;
+        GetClientRect(Window, &ClientRect);
+        int WindowWidth = ClientRect.right - ClientRect.left;
+        int WindowHeight = ClientRect.bottom - ClientRect.top;
+        Win32UpdateWindow(DeviceContext, &ClientRect, 0, 0, WindowWidth, WindowHeight);
+        ReleaseDC(Window, DeviceContext);
       }
-    } else {
+    }
+    else
+    {
       OutputDebugStringA("Error: CreateWindowEx\n");
     }
-  } else {
+  }
+  else
+  {
     OutputDebugStringA("Error: RegisterClass\n");
   }
 
