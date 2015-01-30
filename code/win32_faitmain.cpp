@@ -102,7 +102,9 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
  **/
 internal void
 Win32DisplayBufferInWindow(
-  HDC DeviceContext, int WindowWidth, int WindowHeight,
+  HDC DeviceContext,
+  int WindowWidth,
+  int WindowHeight,
   win32_offscreen_buffer *Buffer,
   int X, int Y, int Width, int Height)
 {

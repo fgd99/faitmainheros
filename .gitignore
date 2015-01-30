@@ -6,3 +6,4 @@ misc/faitmain/Debug/
 misc/ipch/
 misc/VS2013_faitmain/Debug/
 *.zedstate
+*.opensdf
