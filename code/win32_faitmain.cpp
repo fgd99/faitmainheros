@@ -33,7 +33,7 @@ struct win32_window_dimension
 };
 
 win32_window_dimension
-GetWindowDimension(HWND Window) {
+Win32GetWindowDimension(HWND Window) {
   win32_window_dimension Result;
   RECT ClientRect;
   GetClientRect(Window, &ClientRect);
@@ -61,8 +61,7 @@ RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
       uint8 Blue = (X + XOffset);
       uint8 Green = (Y + YOffset);
       // *Pixel = 0xFF00FF00;
-      *Pixel = ((Green << 8) | Blue); // ce qui équivaut en hexa à 0x00BBGG00
-      ++Pixel; // Façon de faire si on prend pixel par pixel
+      *Pixel++ = ((Green << 8) | Blue); // ce qui équivaut en hexa à 0x00BBGG00
     }
     Row += Buffer->Pitch; // Ligne suivante
   }
@@ -85,7 +84,7 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
 
   Buffer->Info.bmiHeader.biSize = sizeof(Buffer->Info.bmiHeader);
   Buffer->Info.bmiHeader.biWidth = Buffer->Width;
-  Buffer->Info.bmiHeader.biHeight = -Buffer->Height; // Atention au sens des coordonnées
+  Buffer->Info.bmiHeader.biHeight = -Buffer->Height; // Attention au sens des coordonnées, du bas vers le haut (d'où le moins)
   Buffer->Info.bmiHeader.biPlanes = 1;
   Buffer->Info.bmiHeader.biBitCount = 32;
   Buffer->Info.bmiHeader.biCompression = BI_RGB;
@@ -110,10 +109,8 @@ Win32DisplayBufferInWindow(
 {
   StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
     DeviceContext,
-    /*X, Y, Width, Height,
-    X, Y, Width, Height,*/
-    0, 0, Buffer->Width, Buffer->Height,
     0, 0, WindowWidth, WindowHeight,
+    0, 0, Buffer->Width, Buffer->Height,
     Buffer->Memory,
     &Buffer->Info,
     DIB_RGB_COLORS,
@@ -133,8 +130,6 @@ Win32MainWindowCallback(
   {
     case WM_SIZE:
       {
-        win32_window_dimension Dimension = GetWindowDimension(Window);
-        Win32ResizeDIBSection(&GlobalBackBuffer, Dimension.Width, Dimension.Height);
         OutputDebugStringA("WM_SIZE\n");
       }
       break;
@@ -166,7 +161,7 @@ Win32MainWindowCallback(
         int Width = Paint.rcPaint.right - Paint.rcPaint.left;
         int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
 
-        win32_window_dimension Dimension = GetWindowDimension(Window);
+        win32_window_dimension Dimension = Win32GetWindowDimension(Window);
         Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, &GlobalBackBuffer, X, Y, Width, Height);
         EndPaint(Window, &Paint);
       }
@@ -190,6 +185,9 @@ WinMain(
 {
   // Création de la fenêtre principale
   WNDCLASSA WindowClass = {}; // initialisation par défaut, ANSI version de WNDCLASSA
+
+  Win32ResizeDIBSection(&GlobalBackBuffer, 1200, 720);
+
   // On ne configure que les membres que l'on veut
   WindowClass.style = CS_HREDRAW|CS_VREDRAW; // indique que l'on veut rafraichir la fenêtre entière lors d'un resize (horizontal et vertical)
   WindowClass.lpfnWndProc = Win32MainWindowCallback;
@@ -236,8 +234,12 @@ WinMain(
         // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
         // On en fera une fonction propre
         HDC DeviceContext = GetDC(Window);
-        win32_window_dimension Dimension = GetWindowDimension(Window);
-        Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, &GlobalBackBuffer, 0, 0, Dimension.Width, Dimension.Height);
+        win32_window_dimension Dimension = Win32GetWindowDimension(Window);
+        Win32DisplayBufferInWindow(
+          DeviceContext,
+          Dimension.Width, Dimension.Height,
+          &GlobalBackBuffer,
+          0, 0, Dimension.Width, Dimension.Height);
         ReleaseDC(Window, DeviceContext);
       }
     }
