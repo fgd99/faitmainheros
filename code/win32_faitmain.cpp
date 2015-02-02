@@ -195,6 +195,54 @@ Win32MainWindowCallback(
         OutputDebugStringA("WM_ACTIVATEAPP\n");
       }
       break;
+    case WM_SYSKEYDOWN:
+    case WM_SYSKEYUP:
+    case WM_KEYDOWN:
+    case WM_KEYUP:
+      {
+        uint32 VKCode = WParam;
+        if (VKCode == 'Z')
+        {
+          OutputDebugStringA("Z\n");
+        }
+        else if (VKCode == 'S')
+        {
+          OutputDebugStringA("S\n");
+        }
+        else if (VKCode == 'Q')
+        {
+          OutputDebugStringA("Q\n");
+        }
+        else if (VKCode == 'D')
+        {
+          OutputDebugStringA("D\n");
+        }
+        else if (VKCode == VK_UP)
+        {
+          OutputDebugStringA("UP\n");
+        }
+        else if (VKCode == VK_DOWN)
+        {
+          OutputDebugStringA("DOWN\n");
+        }
+        else if (VKCode == VK_LEFT)
+        {
+          OutputDebugStringA("LEFT\n");
+        }
+        else if (VKCode == VK_RIGHT)
+        {
+          OutputDebugStringA("RIGHT\n");
+        }
+        else if (VKCode == VK_ESCAPE)
+        {
+          OutputDebugStringA("ESCAPE\n");
+        }
+        else if (VKCode == VK_SPACE)
+        {
+          OutputDebugStringA("SPACE\n");
+        }
+      }
+      break;
     case WM_PAINT:
       {
         PAINTSTRUCT Paint;
