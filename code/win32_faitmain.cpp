@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <stdint.h> // Types indépendent de la plateforme
+#include <Xinput.h> // Pour la gestion des entrées (manette...)
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
 #define internal static // fonctions non visible depuis l'extérieur de ce fichier
@@ -215,16 +216,48 @@ WinMain(
 
       int XOffset = 0;
       int YOffset = 0;
-      MSG Message;
       Running = true;
       
       while (Running) // boucle infinie pour traiter tous les messages
       {
+        MSG Message;
         while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE)) // On utilise PeekMessage au lieu de GetMessage qui est bloquant
         {
           if (Message.message == WM_QUIT) Running = false;
           TranslateMessage(&Message); // On demande à Windows de traiter le message
           DispatchMessage(&Message); // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
+        }
+
+        // Gestion des entrées, pour le moment on gère ça à chaque image, il faudra peut-être le faire plus fréquemment
+        // surtout si le nombre d'images par seconde chute
+        for (DWORD ControllerIndex = 0; ControllerIndex < XUSER_MAX_COUNT; ++ControllerIndex)
+        {
+          XINPUT_STATE ControllerState;
+          if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
+          {
+            // Le controller est branché
+            XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
+
+            bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
+            bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+            bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+            bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+            bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
+            bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
+            bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+            bool RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+            bool AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
+            bool BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
+            bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
+            bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
+
+            uint16 StickX = Pad->sThumbLX;
+            uint16 StickY = Pad->sThumbLY;
+          }
+          else
+          {
+            // Le controlleur n'est pas branché
+          }
         }
         
         // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut dessiner ici
