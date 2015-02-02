@@ -36,7 +36,7 @@ struct win32_window_dimension
 };
 
 // Permet de renvoyer les dimensions actuelles de la fenêtre
-win32_window_dimension
+internal win32_window_dimension
 Win32GetWindowDimension(HWND Window) {
   win32_window_dimension Result;
   RECT ClientRect;
@@ -68,6 +68,17 @@ X_INPUT_SET_STATE(XInputSetStateStub) {
 }
 global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
+
+// On va alors 
+internal void
+Win32LoadXInput(void) {
+  HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll"); // on essaye une version un peu plus ancienne qui sera présente sur plus de machines
+  if (XInputLibrary)
+  {
+    XInputGetState_ = (x_input_get_state*)GetProcAddress(XInputLibrary, "XInputGetState");
+    XInputSetState_ = (x_input_set_state*)GetProcAddress(XInputLibrary, "XInputSetState");
+  }
+}
 
 /* Fonction qui va dessiner dans le backbuffer un gradient de couleur étrange */
 internal void
@@ -150,7 +161,7 @@ Win32DisplayBufferInWindow(
 /**
  * Callback de la fenêtre principale qui va traiter les messages renvoyés par Windows
  **/
-LRESULT CALLBACK
+internal LRESULT CALLBACK
 Win32MainWindowCallback(
   HWND Window,
   UINT Message,
@@ -214,6 +225,9 @@ WinMain(
   LPSTR CommandLine,
   int ShowCode)
 {
+  // On essaye de charger les fonctions de la dll qui gère les manettes
+  Win32LoadXInput();
+
   // Création de la fenêtre principale
   WNDCLASSA WindowClass = {}; // initialisation par défaut, ANSI version de WNDCLASSA
 
@@ -288,13 +302,32 @@ WinMain(
 
             uint16 StickX = Pad->sThumbLX;
             uint16 StickY = Pad->sThumbLY;
+
+            // Test d'utilisation de la manette
+            if (Up) YOffset += 2;
+            if (Down) YOffset -= 2;
+            if (Right) XOffset -= 4;
+
+            // Vibration de la manette
+            XINPUT_VIBRATION Vibration;
+            if (Left)
+            {
+              Vibration.wLeftMotorSpeed = 60000;
+              Vibration.wRightMotorSpeed = 60000;
+            }
+            else
+            {
+              Vibration.wLeftMotorSpeed = 0;
+              Vibration.wRightMotorSpeed = 0;
+            }
+            XInputSetState(0, &Vibration);
           }
           else
           {
             // Le controlleur n'est pas branché
           }
         }
-        
+
         // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut dessiner ici
         RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
         ++XOffset;
@@ -310,7 +343,6 @@ WinMain(
 
         // Pour animer différemment le gradient
         ++XOffset;
-        YOffset += 2;
       }
     }
     else
