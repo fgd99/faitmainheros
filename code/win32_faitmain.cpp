@@ -105,8 +105,7 @@ Win32DisplayBufferInWindow(
   HDC DeviceContext,
   int WindowWidth,
   int WindowHeight,
-  win32_offscreen_buffer *Buffer,
-  int X, int Y, int Width, int Height)
+  win32_offscreen_buffer *Buffer)
 {
   StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
     DeviceContext,
@@ -157,13 +156,8 @@ Win32MainWindowCallback(
       {
         PAINTSTRUCT Paint;
         HDC DeviceContext = BeginPaint(Window, &Paint);
-        int X = Paint.rcPaint.left;
-        int Y = Paint.rcPaint.top;
-        int Width = Paint.rcPaint.right - Paint.rcPaint.left;
-        int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
-
         win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-        Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, &GlobalBackBuffer, X, Y, Width, Height);
+        Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, &GlobalBackBuffer);
         EndPaint(Window, &Paint);
       }
       break;
@@ -243,8 +237,7 @@ WinMain(
         Win32DisplayBufferInWindow(
           DeviceContext,
           Dimension.Width, Dimension.Height,
-          &GlobalBackBuffer,
-          0, 0, Dimension.Width, Dimension.Height);
+          &GlobalBackBuffer);
         ReleaseDC(Window, DeviceContext);
 
         // Pour animer différemment le gradient
