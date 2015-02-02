@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include <stdint.h> // Types indépendent de la plateforme
+#include <stdint.h> // Types indépendents de la plateforme
 #include <Xinput.h> // Pour la gestion des entrées (manette...)
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
@@ -7,13 +7,14 @@
 #define local_persist static     // variable visibles juste dans le scope où elle définie
 #define global_variable static   // variable visible dans tous le fichiers (globale)
 
+// Quelques définitions de types d'entiers pour ne pas être dépendant de la plateforme
 typedef unsigned char uint8;
 typedef uint8_t uint8; // comme un unsigned char, un 8 bits
 typedef int16_t uint16;
 typedef int32_t uint32;
 typedef int64_t uint64;
 
-/* Struct sui représente un backbuffer qui nous permet de dessiner */
+// Struct qui représente un backbuffer qui nous permet de dessiner
 struct win32_offscreen_buffer {
   BITMAPINFO Info;
   void *Memory;
@@ -24,15 +25,17 @@ struct win32_offscreen_buffer {
 };
 
 // variables globales pour le moment, on gèrera autrement plus tard
-global_variable bool Running;
+global_variable bool GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 
+// Struct qui représente des dimensions
 struct win32_window_dimension
 {
   int Width;
   int Height;
 };
 
+// Permet de renvoyer les dimensions actuelles de la fenêtre
 win32_window_dimension
 Win32GetWindowDimension(HWND Window) {
   win32_window_dimension Result;
@@ -43,6 +46,30 @@ Win32GetWindowDimension(HWND Window) {
   return(Result);
 }
 
+// Ici on définit des pointeurs vers les fonctions de Xinput
+// Cette technique traditionnelle permet d'utiliser des fonctions
+// Sans linker directement la lib, et permet aussi de tester si la lib est présente
+// On utilise alors des macros pour définir la signature des fonctions
+// Ici on définit deux fonctions qui vont se subsituer aux vraies si la lib n'est pas trouvée
+// D'abord pour XInputGetState
+#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
+typedef X_INPUT_GET_STATE(x_input_get_state);
+X_INPUT_GET_STATE(XInputGetStateStub) {
+  return(0);
+}
+global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
+#define XInputGetState XInputGetState_
+
+// De même pour XInputSetState
+#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION *pVibration)
+typedef X_INPUT_SET_STATE(x_input_set_state);
+X_INPUT_SET_STATE(XInputSetStateStub) {
+  return(0);
+}
+global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
+#define XInputSetState XInputSetState_
+
+/* Fonction qui va dessiner dans le backbuffer un gradient de couleur étrange */
 internal void
 RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
 {
@@ -70,6 +97,7 @@ RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
 }
 
 /**
+ * Fonction qui permet de définir et de réinitialiser un backbuffer en fonction de ses dimensions
  * DIB: Device Independent Bitmap
  **/
 internal void
@@ -119,6 +147,9 @@ Win32DisplayBufferInWindow(
   );
 }
 
+/**
+ * Callback de la fenêtre principale qui va traiter les messages renvoyés par Windows
+ **/
 LRESULT CALLBACK
 Win32MainWindowCallback(
   HWND Window,
@@ -137,14 +168,14 @@ Win32MainWindowCallback(
     case WM_DESTROY:
       {
         // PostQuitMessage(0); // Va permettre de sortir de la boucle infinie en dessous
-        Running = false;
+        GlobalRunning = false;
         OutputDebugStringA("WM_DESTROY\n");
       }
       break;
     case WM_CLOSE:
       {
         // DestroyWindow(Window);
-        Running = false;
+        GlobalRunning = false;
         OutputDebugStringA("WM_CLOSE\n");
       }
       break;
@@ -172,6 +203,10 @@ Win32MainWindowCallback(
   return(Result);
 }
 
+/**
+ * Main du programme qui va initialiser la fenêtre et gérer la boucle principale : attente des messages,
+ * gestion de la manette et du clavier, dessin...
+ **/
 int CALLBACK
 WinMain(
   HINSTANCE Instance,
@@ -216,14 +251,14 @@ WinMain(
 
       int XOffset = 0;
       int YOffset = 0;
-      Running = true;
+      GlobalRunning = true;
       
-      while (Running) // boucle infinie pour traiter tous les messages
+      while (GlobalRunning) // boucle infinie pour traiter tous les messages
       {
         MSG Message;
         while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE)) // On utilise PeekMessage au lieu de GetMessage qui est bloquant
         {
-          if (Message.message == WM_QUIT) Running = false;
+          if (Message.message == WM_QUIT) GlobalRunning = false;
           TranslateMessage(&Message); // On demande à Windows de traiter le message
           DispatchMessage(&Message); // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
         }
