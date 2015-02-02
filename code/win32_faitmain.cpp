@@ -60,8 +60,9 @@ RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
       */
       uint8 Blue = (X + XOffset);
       uint8 Green = (Y + YOffset);
+      uint8 Red = (X + Y);
       // *Pixel = 0xFF00FF00;
-      *Pixel++ = ((Green << 8) | Blue); // ce qui équivaut en hexa à 0x00BBGG00
+      *Pixel++ = ((Red << 16) | (Green << 8) | Blue); // ce qui équivaut en hexa à 0x00BBGG00
     }
     Row += Buffer->Pitch; // Ligne suivante
   }
@@ -186,10 +187,10 @@ WinMain(
   // Création de la fenêtre principale
   WNDCLASSA WindowClass = {}; // initialisation par défaut, ANSI version de WNDCLASSA
 
-  Win32ResizeDIBSection(&GlobalBackBuffer, 1200, 720);
+  Win32ResizeDIBSection(&GlobalBackBuffer, 800, 600);
 
   // On ne configure que les membres que l'on veut
-  WindowClass.style = CS_HREDRAW|CS_VREDRAW; // indique que l'on veut rafraichir la fenêtre entière lors d'un resize (horizontal et vertical)
+  WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC; // indique que l'on veut rafraichir la fenêtre entière lors d'un resize (horizontal et vertical)
   WindowClass.lpfnWndProc = Win32MainWindowCallback;
   WindowClass.hInstance = Instance;
   // WindowClass.hIcon;
@@ -214,10 +215,15 @@ WinMain(
     );
     if (Window)
     {
+      // Comme on a spécifié CS_OWNDC on peut initialiser un seul HDC
+      // et s'en servir indéfiniment car on ne le partage pas
+      HDC DeviceContext = GetDC(Window);
+
       int XOffset = 0;
       int YOffset = 0;
       MSG Message;
       Running = true;
+      
       while (Running) // boucle infinie pour traiter tous les messages
       {
         while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE)) // On utilise PeekMessage au lieu de GetMessage qui est bloquant
@@ -233,7 +239,6 @@ WinMain(
 
         // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
         // On en fera une fonction propre
-        HDC DeviceContext = GetDC(Window);
         win32_window_dimension Dimension = Win32GetWindowDimension(Window);
         Win32DisplayBufferInWindow(
           DeviceContext,
@@ -241,6 +246,10 @@ WinMain(
           &GlobalBackBuffer,
           0, 0, Dimension.Width, Dimension.Height);
         ReleaseDC(Window, DeviceContext);
+
+        // Pour animer différemment le gradient
+        ++XOffset;
+        YOffset += 2;
       }
     }
     else
