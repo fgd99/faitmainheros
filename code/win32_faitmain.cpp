@@ -205,8 +205,10 @@ Win32MainWindowCallback(
       {
         uint32 VKCode = WParam;
         // On vérifie les bits de LParam (cf. MSDN pour les valeurs)
-        bool WasDown = ((LParam & (1 << 30)) != 0);
-        bool IsDown = ((LParam & (1 << 31)) == 0);
+        #define KeyMessageWasDownBit (1 << 30)
+        #define KeyMessageIsDownBit (1 << 31)
+        bool WasDown = ((LParam & KeyMessageWasDownBit) != 0);
+        bool IsDown = ((LParam & KeyMessageIsDownBit) == 0);
 
         if (WasDown != IsDown) // Pour éviter les répétitions de touches lorsqu'elles sont enfoncées
         {
