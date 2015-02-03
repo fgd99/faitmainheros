@@ -7,6 +7,9 @@
 #define local_persist static     // variable visibles juste dans le scope où elle définie
 #define global_variable static   // variable visible dans tous le fichiers (globale)
 
+// Constantes
+#define XUSER_MAX_COUNT 4 // Normalement définie dans Xinput.h, absente de VS2010
+
 // Quelques définitions de types d'entiers pour ne pas être dépendant de la plateforme
 typedef unsigned char uint8;
 typedef uint8_t uint8; // comme un unsigned char, un 8 bits
@@ -69,10 +72,10 @@ X_INPUT_SET_STATE(XInputSetStateStub) {
 global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
-// On va alors 
+// On va alors charger la dll et pointer vers ses fonctions
 internal void
 Win32LoadXInput(void) {
-  HMODULE XInputLibrary = LoadLibrary("xinput1_3.dll"); // on essaye une version un peu plus ancienne qui sera présente sur plus de machines
+  HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll"); // on essaye une version un peu plus ancienne qui sera présente sur plus de machines
   if (XInputLibrary)
   {
     XInputGetState_ = (x_input_get_state*)GetProcAddress(XInputLibrary, "XInputGetState");
@@ -142,10 +145,10 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
  **/
 internal void
 Win32DisplayBufferInWindow(
+  win32_offscreen_buffer *Buffer,
   HDC DeviceContext,
   int WindowWidth,
-  int WindowHeight,
-  win32_offscreen_buffer *Buffer)
+  int WindowHeight)
 {
   StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
     DeviceContext,
@@ -201,45 +204,53 @@ Win32MainWindowCallback(
     case WM_KEYUP:
       {
         uint32 VKCode = WParam;
-        if (VKCode == 'Z')
+        // On vérifie les bits de LParam (cf. MSDN pour les valeurs)
+        bool WasDown = ((LParam & (1 << 30)) != 0);
+        bool IsDown = ((LParam & (1 << 31)) == 0);
+
+        if (WasDown != IsDown) // Pour éviter les répétitions de touches lorsqu'elles sont enfoncées
         {
-          OutputDebugStringA("Z\n");
-        }
-        else if (VKCode == 'S')
-        {
-          OutputDebugStringA("S\n");
-        }
-        else if (VKCode == 'Q')
-        {
-          OutputDebugStringA("Q\n");
-        }
-        else if (VKCode == 'D')
-        {
-          OutputDebugStringA("D\n");
-        }
-        else if (VKCode == VK_UP)
-        {
-          OutputDebugStringA("UP\n");
-        }
-        else if (VKCode == VK_DOWN)
-        {
-          OutputDebugStringA("DOWN\n");
-        }
-        else if (VKCode == VK_LEFT)
-        {
-          OutputDebugStringA("LEFT\n");
-        }
-        else if (VKCode == VK_RIGHT)
-        {
-          OutputDebugStringA("RIGHT\n");
-        }
-        else if (VKCode == VK_ESCAPE)
-        {
-          OutputDebugStringA("ESCAPE\n");
-        }
-        else if (VKCode == VK_SPACE)
-        {
-          OutputDebugStringA("SPACE\n");
+          if (VKCode == 'Z')
+          {
+            OutputDebugStringA("Z\n");
+          }
+          else if (VKCode == 'S')
+          {
+            OutputDebugStringA("S\n");
+          }
+          else if (VKCode == 'Q')
+          {
+            OutputDebugStringA("Q\n");
+          }
+          else if (VKCode == 'D')
+          {
+            OutputDebugStringA("D\n");
+          }
+          else if (VKCode == VK_UP)
+          {
+            OutputDebugStringA("UP\n");
+          }
+          else if (VKCode == VK_DOWN)
+          {
+            OutputDebugStringA("DOWN\n");
+          }
+          else if (VKCode == VK_LEFT)
+          {
+            OutputDebugStringA("LEFT\n");
+          }
+          else if (VKCode == VK_RIGHT)
+          {
+            OutputDebugStringA("RIGHT\n");
+          }
+          else if (VKCode == VK_ESCAPE)
+          {
+            if (IsDown) OutputDebugStringA("ESCAPE IS DOWN\n");
+            if (WasDown) OutputDebugStringA("ESCAPE WAS DOWN\n");
+          }
+          else if (VKCode == VK_SPACE)
+          {
+            OutputDebugStringA("SPACE\n");
+          }
         }
       }
       break;
@@ -248,7 +259,7 @@ Win32MainWindowCallback(
         PAINTSTRUCT Paint;
         HDC DeviceContext = BeginPaint(Window, &Paint);
         win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-        Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, &GlobalBackBuffer);
+        Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext, Dimension.Width, Dimension.Height);
         EndPaint(Window, &Paint);
       }
       break;
@@ -384,9 +395,9 @@ WinMain(
         // On en fera une fonction propre
         win32_window_dimension Dimension = Win32GetWindowDimension(Window);
         Win32DisplayBufferInWindow(
+          &GlobalBackBuffer,
           DeviceContext,
-          Dimension.Width, Dimension.Height,
-          &GlobalBackBuffer);
+          Dimension.Width, Dimension.Height);
         ReleaseDC(Window, DeviceContext);
 
         // Pour animer différemment le gradient
