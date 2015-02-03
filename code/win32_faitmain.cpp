@@ -348,10 +348,13 @@ WinMain(
             // Le controller est branché
             XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
+			// DPAD
             bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
             bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
             bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
             bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+
+			// Boutons
             bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
             bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
             bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
@@ -361,13 +364,18 @@ WinMain(
             bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
             bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
 
+			// Stick
             uint16 StickX = Pad->sThumbLX;
             uint16 StickY = Pad->sThumbLY;
 
-            // Test d'utilisation de la manette
+            // Test d'utilisation du DPAD de la manette
             if (Up) YOffset += 2;
             if (Down) YOffset -= 2;
             if (Right) XOffset -= 4;
+
+			// Test d'utilisation du stick de la manette
+			XOffset += StickX >> 12;
+			YOffset += StickY >> 12;
 
             // Vibration de la manette
             XINPUT_VIBRATION Vibration;
