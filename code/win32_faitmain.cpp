@@ -58,7 +58,7 @@ Win32GetWindowDimension(HWND Window) {
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
 typedef X_INPUT_GET_STATE(x_input_get_state);
 X_INPUT_GET_STATE(XInputGetStateStub) {
-  return(0);
+  return(ERROR_DEVICE_NOT_AVAILABLE); // Au lieu de renvoyer 0 (ERROR_SUCCESS) on renvoit un code plus explicite
 }
 global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
 #define XInputGetState XInputGetState_
@@ -67,7 +67,7 @@ global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
 #define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_VIBRATION *pVibration)
 typedef X_INPUT_SET_STATE(x_input_set_state);
 X_INPUT_SET_STATE(XInputSetStateStub) {
-  return(0);
+  return(ERROR_DEVICE_NOT_AVAILABLE);
 }
 global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
@@ -76,7 +76,10 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 // Soit la dll est présente sur le système ou alors il faut utiliser la lib redistributable
 internal void
 Win32LoadXInput(void) {
-  HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll"); // on essaye une version un peu plus ancienne qui sera présente sur plus de machines
+  // on essaye de charger la version 1.4 de xinput
+  HMODULE XInputLibrary = LoadLibraryA("xinput1_4.dll");
+  // on essaye une version un peu plus ancienne qui sera présente sur plus de machines si on n'a pas la 1.4
+  if (!XInputLibrary) XInputLibrary = LoadLibraryA("xinput1_3.dll");
   if (XInputLibrary)
   {
     XInputGetState_ = (x_input_get_state*)GetProcAddress(XInputLibrary, "XInputGetState");
@@ -255,6 +258,12 @@ Win32MainWindowCallback(
             OutputDebugStringA("SPACE\n");
           }
         }
+        // Comme on capture les touches il faut gérer nous même le Alt-F4 pour quitter
+        bool AltKeyWasDown = (LParam & (1 << 29)) != 0;
+        if ((VKCode == VK_F4) && AltKeyWasDown)
+        {
+          GlobalRunning = false;
+        }
       }
       break;
     case WM_PAINT:
@@ -349,13 +358,13 @@ WinMain(
             // Le controller est branché
             XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
-			// DPAD
+            // DPAD
             bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
             bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
             bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
             bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
-			// Boutons
+            // Boutons
             bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
             bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
             bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
@@ -365,7 +374,7 @@ WinMain(
             bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
             bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
 
-			// Stick
+            // Stick
             uint16 StickX = Pad->sThumbLX;
             uint16 StickY = Pad->sThumbLY;
 
@@ -374,9 +383,9 @@ WinMain(
             if (Down) YOffset -= 2;
             if (Right) XOffset -= 4;
 
-			// Test d'utilisation du stick de la manette
-			XOffset += StickX >> 12;
-			YOffset += StickY >> 12;
+			      // Test d'utilisation du stick de la manette
+			      XOffset += StickX >> 12;
+			      YOffset += StickY >> 12;
 
             // Vibration de la manette
             XINPUT_VIBRATION Vibration;
