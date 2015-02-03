@@ -73,6 +73,7 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
 // On va alors charger la dll et pointer vers ses fonctions
+// Soit la dll est présente sur le système ou alors il faut utiliser la lib redistributable
 internal void
 Win32LoadXInput(void) {
   HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll"); // on essaye une version un peu plus ancienne qui sera présente sur plus de machines
