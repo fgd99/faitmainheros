@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <stdint.h> // Types indépendents de la plateforme
 #include <Xinput.h> // Pour la gestion des entrées (manette...)
+#include <dsound.h> // Pour jouer du son avec DirectSound
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
 #define internal static // fonctions non visible depuis l'extérieur de ce fichier
@@ -16,6 +17,7 @@ typedef uint8_t uint8; // comme un unsigned char, un 8 bits
 typedef int16_t uint16;
 typedef int32_t uint32;
 typedef int64_t uint64;
+typedef int32_t bool32;
 
 // Struct qui représente un backbuffer qui nous permet de dessiner
 struct win32_offscreen_buffer {
@@ -85,7 +87,44 @@ Win32LoadXInput(void) {
     XInputGetState_ = (x_input_get_state*)GetProcAddress(XInputLibrary, "XInputGetState");
     XInputSetState_ = (x_input_set_state*)GetProcAddress(XInputLibrary, "XInputSetState");
   }
+  else
+  {
+    OutputDebugStringA("Cannot load xinput1_4.dll or xinput1_3.dll");
+  }
 }
+
+// On effectue de même pour les fonctions de DirectSound avec des stubs
+// de fonctions si la dll n'a pas pu être chargée
+#define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuiDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
+typedef DIRECT_SOUND_CREATE(direct_sound_create);
+
+// Initialisation de DirectSound
+internal void
+Win32InitDSound(void)
+{
+  // Chargement de la librairie
+  HMODULE DSoundLibrary = LoadLibraryA("dsound.dll");
+  if (DSoundLibrary) {
+    // Obtention d'un objet DirectSound - mode coopératif
+    direct_sound_create *DirectSoundCreate = (direct_sound_create*)GetProcAddress(DSoundLibrary, "DirectSoundCreate");
+    /*if (DirectSoundCreate && DirectSoundCreate())
+    {
+
+    }
+    else
+    {
+      OutputDebugStringA("Cannot call DirectSoundCreate");
+    }*/
+    // Création d'un buffer principal
+
+    // Création d'un buffer secondaire qui va contenir les sons
+  }
+  else
+  {
+    OutputDebugStringA("Cannot load dsound.dll");
+  }
+}
+
 
 /* Fonction qui va dessiner dans le backbuffer un gradient de couleur étrange */
 internal void
@@ -259,7 +298,8 @@ Win32MainWindowCallback(
           }
         }
         // Comme on capture les touches il faut gérer nous même le Alt-F4 pour quitter
-        bool AltKeyWasDown = (LParam & (1 << 29)) != 0;
+        // Normalement c'est DefWindowProc (en default) qui fait le boulot
+        bool32 AltKeyWasDown = (LParam & (1 << 29));
         if ((VKCode == VK_F4) && AltKeyWasDown)
         {
           GlobalRunning = false;
@@ -348,7 +388,8 @@ WinMain(
           DispatchMessage(&Message); // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
         }
 
-        // Gestion des entrées, pour le moment on gère ça à chaque image, il faudra peut-être le faire plus fréquemment
+        // Gestion des entrées, pour le moment on gère ça à chaque image
+        // il faudra peut-être le faire plus fréquemment
         // surtout si le nombre d'images par seconde chute
         for (DWORD ControllerIndex = 0; ControllerIndex < XUSER_MAX_COUNT; ++ControllerIndex)
         {
@@ -359,20 +400,20 @@ WinMain(
             XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
             // DPAD
-            bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
-            bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-            bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-            bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+            bool32 Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
+            bool32 Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+            bool32 Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+            bool32 Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
             // Boutons
-            bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
-            bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-            bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-            bool RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-            bool AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
-            bool BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
-            bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
-            bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
+            bool32 Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
+            bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
+            bool32 LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+            bool32 RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+            bool32 AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
+            bool32 BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
+            bool32 XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
+            bool32 YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
 
             // Stick
             uint16 StickX = Pad->sThumbLX;
