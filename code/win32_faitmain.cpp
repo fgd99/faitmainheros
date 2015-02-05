@@ -100,24 +100,75 @@ typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
 // Initialisation de DirectSound
 internal void
-Win32InitDSound(void)
+Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
 {
   // Chargement de la librairie
   HMODULE DSoundLibrary = LoadLibraryA("dsound.dll");
   if (DSoundLibrary) {
     // Obtention d'un objet DirectSound - mode coopératif
     direct_sound_create *DirectSoundCreate = (direct_sound_create*)GetProcAddress(DSoundLibrary, "DirectSoundCreate");
-    /*if (DirectSoundCreate && DirectSoundCreate())
+    LPDIRECTSOUND DirectSound;
+    if (DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &DirectSound, 0)))
     {
+      // Description du format sonore
+      WAVEFORMATEX WaveFormat = {};
+      WaveFormat.wFormatTag = WAVE_FORMAT_PCM;
+      WaveFormat.nChannels = 2;
+      WaveFormat.nSamplesPerSec = SamplesPerSecond;
+      WaveFormat.wBitsPerSample = 16;
+      WaveFormat.nBlockAlign = (WaveFormat.nChannels * WaveFormat.wBitsPerSample) / 8;
+      WaveFormat.nAvgBytesPerSec = WaveFormat.nSamplesPerSec * WaveFormat.nBlockAlign;
+      WaveFormat.cbSize = 0;
 
+      // Définition du mode de coopération
+      if (SUCCEEDED(DirectSound->SetCooperativeLevel(Window, DSSCL_PRIORITY)))
+      {
+        // Création d'un buffer principal
+        DSBUFFERDESC BufferDescription = {sizeof(BufferDescription)}; // Astuce pout initialiser tous ses membres à 0
+        BufferDescription.dwSize = sizeof(BufferDescription);
+        BufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
+
+        LPDIRECTSOUNDBUFFER PrimaryBuffer;
+        if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &PrimaryBuffer, 0)))
+        {
+          if (SUCCEEDED(PrimaryBuffer->SetFormat(&WaveFormat))
+          {
+
+          }
+          else
+          {
+
+          }
+        }
+      }
+      else
+      {
+        OutputDebugStringA("Cannot set DirectSound Cooperative Level");
+      }
+      // Création d'un buffer secondaire qui va contenir les sons
+      DSBUFFERDESC BufferDescription = {sizeof(BufferDescription)}; // Astuce pout initialiser tous ses membres à 0
+      BufferDescription.dwSize = sizeof(BufferDescription);
+      BufferDescription.dwFlags = 0;
+      BufferDescription.dwBufferBytes = BufferSize;
+      BufferDescription.lpwfxFormat = &WaveFormat;
+
+      LPDIRECTSOUNDBUFFER SecondaryBuffer;
+      if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &SecondaryBuffer, 0)))
+      {
+        if (SUCCEEDED(SecondaryBuffer->SetFormat(&WaveFormat))
+        {
+
+        }
+        else
+        {
+
+        }
+      }
     }
     else
     {
       OutputDebugStringA("Cannot call DirectSoundCreate");
-    }*/
-    // Création d'un buffer principal
-
-    // Création d'un buffer secondaire qui va contenir les sons
+    }
   }
   else
   {
