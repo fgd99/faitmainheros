@@ -103,6 +103,8 @@ typedef DIRECT_SOUND_CREATE(direct_sound_create);
  * On utilise deux buffers, celui qui joue vraiment le son est le secondaire
  * le primaire est une sorte de handle vers la carte son,
  * il joue le son sans resampling du buffer secondaire.
+ * Auparavent on utilisait juste le premier buffer pour envoyer le son
+ * directement à la carte son.
  * On utilise que 2 channels car on fait un jeu 2D qui n'a pas besoin
  * de positionnement, mais on pourrait le faire pour avoir du surround.
  **/
