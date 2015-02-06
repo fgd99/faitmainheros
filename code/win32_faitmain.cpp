@@ -32,6 +32,7 @@ struct win32_offscreen_buffer {
 // variables globales pour le moment, on gèrera autrement plus tard
 global_variable bool GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
+global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 
 // Struct qui représente des dimensions
 struct win32_window_dimension
@@ -166,8 +167,7 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
       BufferDescription.dwBufferBytes = BufferSize;
       BufferDescription.lpwfxFormat = &WaveFormat;
 
-      LPDIRECTSOUNDBUFFER SecondaryBuffer;
-      HRESULT Error = DirectSound->CreateSoundBuffer(&BufferDescription, &SecondaryBuffer, 0);
+      HRESULT Error = DirectSound->CreateSoundBuffer(&BufferDescription, &GlobalSecondaryBuffer, 0);
       if (SUCCEEDED(Error))
       {
         OutputDebugStringA("Secondary Buffer created successfully.\n");
@@ -243,11 +243,9 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
   int BitmapMemorySize = (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel;
   // MEM_COMMIT réserve automatiquement la mémoire en théorie
   // mais il vaut mieux lui dire explicitement MEM_RESERVE
-  Buffer->Memory = VirtualAlloc(
-    0,
-    BitmapMemorySize,
-    MEM_RESERVE | MEM_COMMIT,
-    PAGE_READWRITE); // cf. aussi HeapAlloc
+  Buffer->Memory = VirtualAlloc(0, BitmapMemorySize,
+                                MEM_RESERVE | MEM_COMMIT,
+                                PAGE_READWRITE); // cf. aussi HeapAlloc
 
   Buffer->Pitch = Width * Buffer->BytesPerPixel;
 }
@@ -257,33 +255,29 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
  * cependant comme la structure est petite le passer par valeur est suffisant
  **/
 internal void
-Win32DisplayBufferInWindow(
-  win32_offscreen_buffer *Buffer,
-  HDC DeviceContext,
-  int WindowWidth,
-  int WindowHeight)
+Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer,
+                           HDC DeviceContext,
+                           int WindowWidth,
+                           int WindowHeight)
 {
   // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
-  StretchDIBits(
-    DeviceContext,
-    0, 0, WindowWidth, WindowHeight,
-    0, 0, Buffer->Width, Buffer->Height,
-    Buffer->Memory,
-    &Buffer->Info,
-    DIB_RGB_COLORS,
-    SRCCOPY // BitBlt: bit-block transfer of the color data => voir les autres modes dans la MSDN
-  );
+  StretchDIBits(DeviceContext,
+                0, 0, WindowWidth, WindowHeight,
+                0, 0, Buffer->Width, Buffer->Height,
+                Buffer->Memory,
+                &Buffer->Info,
+                DIB_RGB_COLORS,
+                SRCCOPY); // BitBlt: bit-block transfer of the color data => voir les autres modes dans la MSDN
 }
 
 /**
  * Callback de la fenêtre principale qui va traiter les messages renvoyés par Windows
  **/
 internal LRESULT CALLBACK
-Win32MainWindowCallback(
-  HWND Window,
-  UINT Message,
-  WPARAM WParam,
-  LPARAM LParam)
+Win32MainWindowCallback(HWND Window,
+                        UINT Message,
+                        WPARAM WParam,
+                        LPARAM LParam)
 {
   LRESULT Result = 0;
   switch(Message)
@@ -384,11 +378,10 @@ Win32MainWindowCallback(
         PAINTSTRUCT Paint;
         HDC DeviceContext = BeginPaint(Window, &Paint);
         win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-        Win32DisplayBufferInWindow(
-          &GlobalBackBuffer,
-          DeviceContext,
-          Dimension.Width,
-          Dimension.Height);
+        Win32DisplayBufferInWindow(&GlobalBackBuffer,
+                                   DeviceContext,
+                                   Dimension.Width,
+                                   Dimension.Height);
         EndPaint(Window, &Paint);
       }
       break;
@@ -407,11 +400,10 @@ Win32MainWindowCallback(
  * gestion de la manette et du clavier, dessin...
  **/
 int CALLBACK
-WinMain(
-  HINSTANCE Instance,
-  HINSTANCE PrevInstance,
-  LPSTR CommandLine,
-  int ShowCode)
+WinMain(HINSTANCE Instance,
+        HINSTANCE PrevInstance,
+        LPSTR CommandLine,
+        int ShowCode)
 {
   // On essaye de charger les fonctions de la dll qui gère les manettes
   Win32LoadXInput();
@@ -424,7 +416,7 @@ WinMain(
 
   // On ne configure que les membres que l'on veut
   // indique que l'on veut rafraichir la fenêtre entière lors d'un resize (horizontal et vertical)
-  WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
+  WindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
   WindowClass.lpfnWndProc = Win32MainWindowCallback;
   WindowClass.hInstance = Instance;
   // WindowClass.hIcon;
@@ -433,20 +425,19 @@ WinMain(
   // Ouverture de la fenêtre
   if (RegisterClassA(&WindowClass))
   {
-    HWND Window = CreateWindowExA( // ANSI version de CreateWindowEx
-      0, // dwExStyle : options de la fenêtre
-      WindowClass.lpszClassName,
-      "FaitmainHeros",
-      WS_OVERLAPPEDWINDOW|WS_VISIBLE, //dwStyle : overlapped window, visible par défaut
-      CW_USEDEFAULT, // X
-      CW_USEDEFAULT, // Y
-      CW_USEDEFAULT, // nWidth
-      CW_USEDEFAULT, // nHeight
-      0, // hWndParent : 0 pour dire que c'est une fenêtre top
-      0, // hMenu : 0 pour dire pas de menu
-      Instance,
-      0 // Pas de passage de paramètres à la fenêtre
-    );
+    // ANSI version de CreateWindowEx
+    HWND Window = CreateWindowExA(0, // dwExStyle : options de la fenêtre
+                                  WindowClass.lpszClassName,
+                                  "FaitmainHeros",
+                                  WS_OVERLAPPEDWINDOW | WS_VISIBLE, //dwStyle : overlapped window, visible par défaut
+                                  CW_USEDEFAULT, // X
+                                  CW_USEDEFAULT, // Y
+                                  CW_USEDEFAULT, // nWidth
+                                  CW_USEDEFAULT, // nHeight
+                                  0, // hWndParent : 0 pour dire que c'est une fenêtre top
+                                  0, // hMenu : 0 pour dire pas de menu
+                                  Instance,
+                                  0); // Pas de passage de paramètres à la fenêtre
     if (Window)
     {
       // Comme on a spécifié CS_OWNDC on peut initialiser un seul HDC
@@ -535,15 +526,35 @@ WinMain(
 
         // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut dessiner ici
         RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
+
+        // Test de rendu DirectSound
+        // Forme d'un sample :  int16 int16   int16 int16   int16 int16 ...
+        //                     (LEFT  RIGHT) (LEFT  RIGHT) (LEFT  RIGHT)...
+        DWORD WritePointer;
+        DWORD BytesToWrite;
+        VOID *Region1;
+        DWORD Region1Size;
+        VOID *Region2;
+        DWORD Region2Size;
+        GlobalSecondaryBuffer->Lock(WritePointer, BytesToWrite,
+                                    &Region1, &Region1Size,
+                                    &Region2, &Region2Size,
+                                    0);
+        // il faut bien avoir Region1Size et Region2Size valides
+        for (DWORD SampleIndex = 0; SampleIndex < Region1Size; ++SampleIndex)
+        {
+        }
+        for (DWORD SampleIndex = 0; SampleIndex < Region2Size; ++SampleIndex)
+        {
+        }
+
         ++XOffset;
 
         // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
         // On en fera une fonction propre
         win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-        Win32DisplayBufferInWindow(
-          &GlobalBackBuffer,
-          DeviceContext,
-          Dimension.Width, Dimension.Height);
+        Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
+                                   Dimension.Width, Dimension.Height);
         ReleaseDC(Window, DeviceContext);
 
         // Pour animer différemment le gradient
