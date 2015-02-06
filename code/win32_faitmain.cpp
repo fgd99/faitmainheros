@@ -89,7 +89,7 @@ Win32LoadXInput(void) {
   }
   else
   {
-    OutputDebugStringA("Cannot load xinput1_4.dll or xinput1_3.dll");
+    OutputDebugStringA("Cannot load xinput1_4.dll or xinput1_3.dll\n");
   }
 }
 
@@ -131,19 +131,20 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
         LPDIRECTSOUNDBUFFER PrimaryBuffer;
         if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &PrimaryBuffer, 0)))
         {
-          if (SUCCEEDED(PrimaryBuffer->SetFormat(&WaveFormat))
+          HRESULT Error = PrimaryBuffer->SetFormat(&WaveFormat);
+          if (SUCCEEDED(Error))
           {
-
+            OutputDebugStringA("Primary Buffer format was set.\n");
           }
           else
           {
-
+            OutputDebugStringA("Primary Buffer format was NOT set.\n");
           }
         }
       }
       else
       {
-        OutputDebugStringA("Cannot set DirectSound Cooperative Level");
+        OutputDebugStringA("Cannot set DirectSound Cooperative Level\n");
       }
       // Création d'un buffer secondaire qui va contenir les sons
       DSBUFFERDESC BufferDescription = {sizeof(BufferDescription)}; // Astuce pout initialiser tous ses membres à 0
@@ -153,26 +154,20 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
       BufferDescription.lpwfxFormat = &WaveFormat;
 
       LPDIRECTSOUNDBUFFER SecondaryBuffer;
-      if (SUCCEEDED(DirectSound->CreateSoundBuffer(&BufferDescription, &SecondaryBuffer, 0)))
+      HRESULT Error = DirectSound->CreateSoundBuffer(&BufferDescription, &SecondaryBuffer, 0);
+      if (SUCCEEDED(Error))
       {
-        if (SUCCEEDED(SecondaryBuffer->SetFormat(&WaveFormat))
-        {
-
-        }
-        else
-        {
-
-        }
+        OutputDebugStringA("Secondary Buffer created successfully.\n");
       }
     }
     else
     {
-      OutputDebugStringA("Cannot call DirectSoundCreate");
+      OutputDebugStringA("Cannot call DirectSoundCreate\n");
     }
   }
   else
   {
-    OutputDebugStringA("Cannot load dsound.dll");
+    OutputDebugStringA("Cannot load dsound.dll\n");
   }
 }
 
@@ -427,8 +422,10 @@ WinMain(
 
       int XOffset = 0;
       int YOffset = 0;
+
+      Win32InitDSound(Window, 48000, 48000 * sizeof(uint16) * 2);
+
       GlobalRunning = true;
-      
       while (GlobalRunning) // boucle infinie pour traiter tous les messages
       {
         MSG Message;
