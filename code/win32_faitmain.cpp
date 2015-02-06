@@ -98,7 +98,14 @@ Win32LoadXInput(void) {
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuiDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
-// Initialisation de DirectSound
+/**
+ * Initialisation de DirectSound
+ * On utilise deux buffers, celui qui joue vraiment le son est le secondaire
+ * le primaire est une sorte de handle vers la carte son,
+ * il joue le son sans resampling du buffer secondaire.
+ * On utilise que 2 channels car on fait un jeu 2D qui n'a pas besoin
+ * de positionnement, mais on pourrait le faire pour avoir du surround.
+ **/
 internal void
 Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
 {
@@ -106,7 +113,9 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
   HMODULE DSoundLibrary = LoadLibraryA("dsound.dll");
   if (DSoundLibrary) {
     // Obtention d'un objet DirectSound - mode coopératif
-    direct_sound_create *DirectSoundCreate = (direct_sound_create*)GetProcAddress(DSoundLibrary, "DirectSoundCreate");
+    direct_sound_create *DirectSoundCreate = (direct_sound_create*)GetProcAddress(
+      DSoundLibrary,
+      "DirectSoundCreate");
     LPDIRECTSOUND DirectSound;
     if (DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &DirectSound, 0)))
     {
@@ -124,7 +133,8 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
       if (SUCCEEDED(DirectSound->SetCooperativeLevel(Window, DSSCL_PRIORITY)))
       {
         // Création d'un buffer principal
-        DSBUFFERDESC BufferDescription = {sizeof(BufferDescription)}; // Astuce pout initialiser tous ses membres à 0
+        // Astuce pout initialiser tous ses membres à 0
+        DSBUFFERDESC BufferDescription = {sizeof(BufferDescription)};
         BufferDescription.dwSize = sizeof(BufferDescription);
         BufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
 
@@ -147,7 +157,8 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
         OutputDebugStringA("Cannot set DirectSound Cooperative Level\n");
       }
       // Création d'un buffer secondaire qui va contenir les sons
-      DSBUFFERDESC BufferDescription = {sizeof(BufferDescription)}; // Astuce pout initialiser tous ses membres à 0
+      // Astuce pout initialiser tous ses membres à 0
+      DSBUFFERDESC BufferDescription = {sizeof(BufferDescription)};
       BufferDescription.dwSize = sizeof(BufferDescription);
       BufferDescription.dwFlags = 0;
       BufferDescription.dwBufferBytes = BufferSize;
@@ -176,10 +187,12 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
 internal void
 RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
 {
-  uint8 *Row = (uint8 *)Buffer->Memory; // on va se déplacer dans la mémoire par pas de 8 bits
+  // on va se déplacer dans la mémoire par pas de 8 bits
+  uint8 *Row = (uint8 *)Buffer->Memory;
   for (int Y = 0; Y < Buffer->Height; ++Y)
   {
-    uint32 *Pixel = (uint32 *)Row; // Pixel par pixel, on commence par le premier de la ligne
+    // Pixel par pixel, on commence par le premier de la ligne
+    uint32 *Pixel = (uint32 *)Row;
     for (int X = 0; X < Buffer->Width; ++X)
     {
       /*
@@ -192,8 +205,9 @@ RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
       uint8 Blue = (X + XOffset);
       uint8 Green = (Y + YOffset);
       uint8 Red = (X + Y);
-      // *Pixel = 0xFF00FF00;
-      *Pixel++ = ((Red << 16) | (Green << 8) | Blue); // ce qui équivaut en hexa à 0x00BBGG00
+      // On peut changer directement la couleur d'un pixel :  *Pixel = 0xFF00FF00;
+      // ce qui équivaut en hexa à 0x00BBGG00
+      *Pixel++ = ((Red << 16) | (Green << 8) | Blue);
     }
     Row += Buffer->Pitch; // Ligne suivante
   }
@@ -208,7 +222,8 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
 {
   if (Buffer->Memory)
   {
-    VirtualFree(Buffer->Memory, 0, MEM_RELEASE); // cf. VirtualProtect, utile pour debug
+    // cf. VirtualProtect, utile pour debug
+    VirtualFree(Buffer->Memory, 0, MEM_RELEASE);
   }
 
   Buffer->Width = Width;
@@ -217,13 +232,20 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
 
   Buffer->Info.bmiHeader.biSize = sizeof(Buffer->Info.bmiHeader);
   Buffer->Info.bmiHeader.biWidth = Buffer->Width;
-  Buffer->Info.bmiHeader.biHeight = -Buffer->Height; // Attention au sens des coordonnées, du bas vers le haut (d'où le moins)
+  // Attention au sens des coordonnées, du bas vers le haut (d'où le moins)
+  Buffer->Info.bmiHeader.biHeight = -Buffer->Height;
   Buffer->Info.bmiHeader.biPlanes = 1;
   Buffer->Info.bmiHeader.biBitCount = 32;
   Buffer->Info.bmiHeader.biCompression = BI_RGB;
   
   int BitmapMemorySize = (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel;
-  Buffer->Memory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE); // cf. aussi HeapAlloc
+  // MEM_COMMIT réserve automatiquement la mémoire en théorie
+  // mais il vaut mieux lui dire explicitement MEM_RESERVE
+  Buffer->Memory = VirtualAlloc(
+    0,
+    BitmapMemorySize,
+    MEM_RESERVE | MEM_COMMIT,
+    PAGE_READWRITE); // cf. aussi HeapAlloc
 
   Buffer->Pitch = Width * Buffer->BytesPerPixel;
 }
@@ -239,7 +261,8 @@ Win32DisplayBufferInWindow(
   int WindowWidth,
   int WindowHeight)
 {
-  StretchDIBits( // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
+  // copie d'un rectangle vers un autre (scaling si nécessaire, bit opérations...)
+  StretchDIBits(
     DeviceContext,
     0, 0, WindowWidth, WindowHeight,
     0, 0, Buffer->Width, Buffer->Height,
@@ -270,7 +293,9 @@ Win32MainWindowCallback(
       break;
     case WM_DESTROY:
       {
-        // PostQuitMessage(0); // Va permettre de sortir de la boucle infinie en dessous
+        // PostQuitMessage(0);
+        // Va permettre de sortir de la boucle infinie en dessous
+        // Mais finalement on va gérer ça avec une variable globale pour le moment
         GlobalRunning = false;
         OutputDebugStringA("WM_DESTROY\n");
       }
@@ -357,7 +382,11 @@ Win32MainWindowCallback(
         PAINTSTRUCT Paint;
         HDC DeviceContext = BeginPaint(Window, &Paint);
         win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-        Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext, Dimension.Width, Dimension.Height);
+        Win32DisplayBufferInWindow(
+          &GlobalBackBuffer,
+          DeviceContext,
+          Dimension.Width,
+          Dimension.Height);
         EndPaint(Window, &Paint);
       }
       break;
@@ -386,12 +415,14 @@ WinMain(
   Win32LoadXInput();
 
   // Création de la fenêtre principale
-  WNDCLASSA WindowClass = {}; // initialisation par défaut, ANSI version de WNDCLASSA
+  // initialisation par défaut, ANSI version de WNDCLASSA
+  WNDCLASSA WindowClass = {};
 
   Win32ResizeDIBSection(&GlobalBackBuffer, 800, 600);
 
   // On ne configure que les membres que l'on veut
-  WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC; // indique que l'on veut rafraichir la fenêtre entière lors d'un resize (horizontal et vertical)
+  // indique que l'on veut rafraichir la fenêtre entière lors d'un resize (horizontal et vertical)
+  WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
   WindowClass.lpfnWndProc = Win32MainWindowCallback;
   WindowClass.hInstance = Instance;
   // WindowClass.hIcon;
@@ -426,14 +457,18 @@ WinMain(
       Win32InitDSound(Window, 48000, 48000 * sizeof(uint16) * 2);
 
       GlobalRunning = true;
-      while (GlobalRunning) // boucle infinie pour traiter tous les messages
+      // boucle infinie pour traiter tous les messages
+      while (GlobalRunning)
       {
         MSG Message;
-        while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE)) // On utilise PeekMessage au lieu de GetMessage qui est bloquant
+        // On utilise PeekMessage au lieu de GetMessage qui est bloquant
+        while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
         {
           if (Message.message == WM_QUIT) GlobalRunning = false;
-          TranslateMessage(&Message); // On demande à Windows de traiter le message
-          DispatchMessage(&Message); // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
+          // On demande à Windows de traiter le message
+          TranslateMessage(&Message);
+          // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
+          DispatchMessage(&Message);
         }
 
         // Gestion des entrées, pour le moment on gère ça à chaque image
