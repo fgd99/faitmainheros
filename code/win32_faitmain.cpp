@@ -447,7 +447,13 @@ WinMain(HINSTANCE Instance,
       int XOffset = 0;
       int YOffset = 0;
 
-      Win32InitDSound(Window, 48000, 48000 * sizeof(uint16) * 2);
+      // Initialisation de DirectSound
+      int SamplesPerSecond = 48000;
+      int Hz = 256; // Pas loin de middle C (Do)
+      int SquareWaveCounter = 0;
+      int SquareWavePeriod = SamplesPerSecond / Hz;
+      int BytesPerSample = sizeof(uint16) * 2;
+      Win32InitDSound(Window, SamplesPerSecond, SamplesPerSecond * BytesPerSample);
 
       GlobalRunning = true;
       // boucle infinie pour traiter tous les messages
@@ -530,22 +536,49 @@ WinMain(HINSTANCE Instance,
         // Test de rendu DirectSound
         // Forme d'un sample :  int16 int16   int16 int16   int16 int16 ...
         //                     (LEFT  RIGHT) (LEFT  RIGHT) (LEFT  RIGHT)...
-        DWORD WritePointer;
-        DWORD BytesToWrite;
-        VOID *Region1;
-        DWORD Region1Size;
-        VOID *Region2;
-        DWORD Region2Size;
-        GlobalSecondaryBuffer->Lock(WritePointer, BytesToWrite,
-                                    &Region1, &Region1Size,
-                                    &Region2, &Region2Size,
-                                    0);
-        // il faut bien avoir Region1Size et Region2Size valides
-        for (DWORD SampleIndex = 0; SampleIndex < Region1Size; ++SampleIndex)
+        DWORD PlayCursor;
+        DWORD WriteCursor;
+        if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
         {
-        }
-        for (DWORD SampleIndex = 0; SampleIndex < Region2Size; ++SampleIndex)
-        {
+          DWORD WritePointer;
+          DWORD BytesToWrite;
+
+          VOID *Region1;
+          DWORD Region1Size;
+          VOID *Region2;
+          DWORD Region2Size;
+          if (SUCCEEDED(GlobalSecondaryBuffer->Lock(WritePointer, BytesToWrite,
+                                                    &Region1, &Region1Size,
+                                                    &Region2, &Region2Size,
+                                                    0)))
+          {
+            // il faut bien avoir Region1Size et Region2Size valides
+            uint16 *SampleOut = (uint16*)Region1;
+            DWORD Region1SampleCount = Region1Size / BytesPerSample;
+            DWORD Region2SampleCount = Region2Size / BytesPerSample;
+            for (DWORD SampleIndex = 0; SampleIndex < Region1Size; ++SampleIndex)
+            {
+              if (SquareWaveCounter)
+              {
+                SquareWaveCounter = SquareWavePeriod;
+              }
+              uint16 SampleValue = (SquareWaveCounter > (SquareWavePeriod / 2)) ? 16000 : -16000;
+              *SampleOut++ = SampleValue;
+              *SampleOut++ = SampleValue;
+              SquareWaveCounter++;
+            }
+            for (DWORD SampleIndex = 0; SampleIndex < Region2Size; ++SampleIndex)
+            {
+              if (SquareWaveCounter)
+              {
+                SquareWaveCounter = SquareWavePeriod;
+              }
+              uint16 SampleValue = (SquareWaveCounter > (SquareWavePeriod / 2)) ? 16000 : -16000;
+              *SampleOut++ = SampleValue;
+              *SampleOut++ = SampleValue;
+              SquareWaveCounter++;
+            }
+          }
         }
 
         ++XOffset;
