@@ -12,7 +12,7 @@
 #define XUSER_MAX_COUNT 4 // Normalement définie dans Xinput.h, absente de VS2010
 
 // Quelques définitions de types d'entiers pour ne pas être dépendant de la plateforme
-typedef unsigned char uint8;
+typedef int16_t int16;
 typedef uint8_t uint8; // comme un unsigned char, un 8 bits
 typedef int16_t uint16;
 typedef int32_t uint32;
@@ -447,13 +447,19 @@ WinMain(HINSTANCE Instance,
       int XOffset = 0;
       int YOffset = 0;
 
-      // Initialisation de DirectSound
+      // Initialisation de DirectSound et test de son
       int SamplesPerSecond = 48000;
-      int Hz = 256; // Pas loin de middle C (Do)
-      int SquareWaveCounter = 0;
-      int SquareWavePeriod = SamplesPerSecond / Hz;
+      int ToneHz = 256; // Pas loin de middle C (Do)
+      int16 ToneVolume = 6000;
+      uint32 RunningSampleIndex = 0;
+      //int SquareWaveCounter = 0;
+      int SquareWavePeriod = SamplesPerSecond / ToneHz;
+      int HalfSquareWavePeriod = SquareWavePeriod / 2;
       int BytesPerSample = sizeof(uint16) * 2;
-      Win32InitDSound(Window, SamplesPerSecond, SamplesPerSecond * BytesPerSample);
+      int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;
+
+      Win32InitDSound(Window, SamplesPerSecond, SecondaryBufferSize);
+      GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
       GlobalRunning = true;
       // boucle infinie pour traiter tous les messages
@@ -540,44 +546,51 @@ WinMain(HINSTANCE Instance,
         DWORD WriteCursor;
         if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
         {
-          DWORD WritePointer;
+          DWORD ByteToLock = RunningSampleIndex * BytesPerSample % SecondaryBufferSize;
           DWORD BytesToWrite;
+          if (ByteToLock == PlayCursor)
+          {
+            BytesToWrite = SecondaryBufferSize;
+          }
+          else if (ByteToLock > PlayCursor)
+          {
+            BytesToWrite = SecondaryBufferSize - ByteToLock;
+            BytesToWrite += PlayCursor;
+          }
+          else
+          {
+            BytesToWrite = PlayCursor - ByteToLock;
+          }
 
           VOID *Region1;
           DWORD Region1Size;
           VOID *Region2;
           DWORD Region2Size;
-          if (SUCCEEDED(GlobalSecondaryBuffer->Lock(WritePointer, BytesToWrite,
+
+          if (SUCCEEDED(GlobalSecondaryBuffer->Lock(ByteToLock, BytesToWrite,
                                                     &Region1, &Region1Size,
                                                     &Region2, &Region2Size,
                                                     0)))
           {
             // il faut bien avoir Region1Size et Region2Size valides
-            uint16 *SampleOut = (uint16*)Region1;
             DWORD Region1SampleCount = Region1Size / BytesPerSample;
-            DWORD Region2SampleCount = Region2Size / BytesPerSample;
+            int16 *SampleOut = (uint16*)Region1;
             for (DWORD SampleIndex = 0; SampleIndex < Region1Size; ++SampleIndex)
             {
-              if (SquareWaveCounter)
-              {
-                SquareWaveCounter = SquareWavePeriod;
-              }
-              uint16 SampleValue = (SquareWaveCounter > (SquareWavePeriod / 2)) ? 16000 : -16000;
+              uint16 SampleValue = ((RunningSampleIndex++ / HalfSquareWavePeriod) % 2) ? ToneVolume : -ToneVolume;
               *SampleOut++ = SampleValue;
               *SampleOut++ = SampleValue;
-              SquareWaveCounter++;
             }
+            DWORD Region2SampleCount = Region2Size / BytesPerSample;
+            SampleOut = (uint16*)Region2;
             for (DWORD SampleIndex = 0; SampleIndex < Region2Size; ++SampleIndex)
             {
-              if (SquareWaveCounter)
-              {
-                SquareWaveCounter = SquareWavePeriod;
-              }
-              uint16 SampleValue = (SquareWaveCounter > (SquareWavePeriod / 2)) ? 16000 : -16000;
+              uint16 SampleValue = ((RunningSampleIndex++ / HalfSquareWavePeriod) % 2) ? ToneVolume : -ToneVolume;
               *SampleOut++ = SampleValue;
               *SampleOut++ = SampleValue;
-              SquareWaveCounter++;
             }
+            // Unlocking the buffer
+            //GlobalSecondaryBuffer->Unlock(Region1, Region1Size, Region2, Region2Size);
           }
         }
 
