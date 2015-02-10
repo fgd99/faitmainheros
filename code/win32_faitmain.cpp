@@ -452,14 +452,13 @@ WinMain(HINSTANCE Instance,
       int ToneHz = 256; // Pas loin de middle C (Do)
       int16 ToneVolume = 6000;
       uint32 RunningSampleIndex = 0;
-      //int SquareWaveCounter = 0;
       int SquareWavePeriod = SamplesPerSecond / ToneHz;
       int HalfSquareWavePeriod = SquareWavePeriod / 2;
       int BytesPerSample = sizeof(uint16) * 2;
       int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;
+      bool SoundIsPlaying = false;
 
       Win32InitDSound(Window, SamplesPerSecond, SecondaryBufferSize);
-      GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
       GlobalRunning = true;
       // boucle infinie pour traiter tous les messages
@@ -574,27 +573,32 @@ WinMain(HINSTANCE Instance,
           {
             // il faut bien avoir Region1Size et Region2Size valides
             DWORD Region1SampleCount = Region1Size / BytesPerSample;
-            int16 *SampleOut = (uint16*)Region1;
-            for (DWORD SampleIndex = 0; SampleIndex < Region1Size; ++SampleIndex)
+            int16 *SampleOut = (int16*)Region1;
+            for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; ++SampleIndex)
             {
               uint16 SampleValue = ((RunningSampleIndex++ / HalfSquareWavePeriod) % 2) ? ToneVolume : -ToneVolume;
               *SampleOut++ = SampleValue;
               *SampleOut++ = SampleValue;
             }
             DWORD Region2SampleCount = Region2Size / BytesPerSample;
-            SampleOut = (uint16*)Region2;
-            for (DWORD SampleIndex = 0; SampleIndex < Region2Size; ++SampleIndex)
+            SampleOut = (int16*)Region2;
+            for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; ++SampleIndex)
             {
               uint16 SampleValue = ((RunningSampleIndex++ / HalfSquareWavePeriod) % 2) ? ToneVolume : -ToneVolume;
               *SampleOut++ = SampleValue;
               *SampleOut++ = SampleValue;
             }
             // Unlocking the buffer
-            //GlobalSecondaryBuffer->Unlock(Region1, Region1Size, Region2, Region2Size);
+            GlobalSecondaryBuffer->Unlock(Region1, Region1Size, Region2, Region2Size);
           }
         }
 
-        ++XOffset;
+        // On lance le son
+        if (!SoundIsPlaying)
+        {
+          GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+          SoundIsPlaying = true;
+        }
 
         // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
         // On en fera une fonction propre
