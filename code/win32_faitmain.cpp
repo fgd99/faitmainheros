@@ -12,12 +12,19 @@
 #define XUSER_MAX_COUNT 4 // Normalement définie dans Xinput.h, absente de VS2010
 
 // Quelques définitions de types d'entiers pour ne pas être dépendant de la plateforme
+typedef int8_t int8;
 typedef int16_t int16;
-typedef uint8_t uint8; // comme un unsigned char, un 8 bits
-typedef int16_t uint16;
-typedef int32_t uint32;
-typedef int64_t uint64;
+typedef int32_t int32;
+typedef int64_t int64;
 typedef int32_t bool32;
+
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
+
+typedef float real32;
+typedef double real64;
 
 // Struct qui représente un backbuffer qui nous permet de dessiner
 struct win32_offscreen_buffer {
@@ -452,8 +459,8 @@ WinMain(HINSTANCE Instance,
       int ToneHz = 256; // Pas loin de middle C (Do)
       int16 ToneVolume = 6000;
       uint32 RunningSampleIndex = 0;
-      int SquareWavePeriod = SamplesPerSecond / ToneHz;
-      int HalfSquareWavePeriod = SquareWavePeriod / 2;
+      int WavePeriod = SamplesPerSecond / ToneHz;
+      int HalfWavePeriod = WavePeriod / 2;
       int BytesPerSample = sizeof(uint16) * 2;
       int SecondaryBufferSize = SamplesPerSecond * BytesPerSample;
       bool SoundIsPlaying = false;
@@ -545,6 +552,8 @@ WinMain(HINSTANCE Instance,
         DWORD WriteCursor;
         if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
         {
+          // On remplit le buffer secondaire en fonction d'où se trouve le curseur de lecture
+          // ce qui mériterait une meilleure gestion de l'état de lecture
           DWORD ByteToLock = RunningSampleIndex * BytesPerSample % SecondaryBufferSize;
           DWORD BytesToWrite;
           if (ByteToLock == PlayCursor)
@@ -576,7 +585,7 @@ WinMain(HINSTANCE Instance,
             int16 *SampleOut = (int16*)Region1;
             for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; ++SampleIndex)
             {
-              uint16 SampleValue = ((RunningSampleIndex++ / HalfSquareWavePeriod) % 2) ? ToneVolume : -ToneVolume;
+              uint16 SampleValue = ((RunningSampleIndex++ / HalfWavePeriod) % 2) ? ToneVolume : -ToneVolume;
               *SampleOut++ = SampleValue;
               *SampleOut++ = SampleValue;
             }
@@ -584,7 +593,7 @@ WinMain(HINSTANCE Instance,
             SampleOut = (int16*)Region2;
             for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; ++SampleIndex)
             {
-              uint16 SampleValue = ((RunningSampleIndex++ / HalfSquareWavePeriod) % 2) ? ToneVolume : -ToneVolume;
+              uint16 SampleValue = ((RunningSampleIndex++ / HalfWavePeriod) % 2) ? ToneVolume : -ToneVolume;
               *SampleOut++ = SampleValue;
               *SampleOut++ = SampleValue;
             }
