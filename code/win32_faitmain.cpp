@@ -2,6 +2,7 @@
 #include <stdint.h> // Types indépendents de la plateforme
 #include <Xinput.h> // Pour la gestion des entrées (manette...)
 #include <dsound.h> // Pour jouer du son avec DirectSound
+#include <math.h>   // Fonctions mathématiques
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
 #define internal static // fonctions non visible depuis l'extérieur de ce fichier
@@ -585,6 +586,8 @@ WinMain(HINSTANCE Instance,
             int16 *SampleOut = (int16*)Region1;
             for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; ++SampleIndex)
             {
+              //real32 SineValue = 0;
+              //int16 SampleValue = 0;
               uint16 SampleValue = ((RunningSampleIndex++ / HalfWavePeriod) % 2) ? ToneVolume : -ToneVolume;
               *SampleOut++ = SampleValue;
               *SampleOut++ = SampleValue;
