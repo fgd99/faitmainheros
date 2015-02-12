@@ -595,6 +595,14 @@ WinMain(HINSTANCE Instance,
               Vibration.wRightMotorSpeed = 0;
             }
             XInputSetState(0, &Vibration);
+
+            // Pour jouer avec le son lorsque l'on appuie sur un bouton
+            if (AButton)
+            {
+              SoundOutput.ToneHz = 512;
+              // Pour le moment on copie/colle mais il faudra en faire une fonction
+              SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
+            }
           }
           else
           {
