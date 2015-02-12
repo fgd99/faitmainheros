@@ -510,6 +510,7 @@ WinMain(HINSTANCE Instance,
       int YOffset = 0;
 
       // Initialisation de DirectSound et test de son
+      // Pour le moment on a un buffer d'une seconde, on verra si ça suffit plus tard
       win32_sound_output SoundOutput = {};
       SoundOutput.SamplesPerSecond = 48000;
       SoundOutput.ToneHz = 256; // Pas loin de middle C (Do)
@@ -616,11 +617,7 @@ WinMain(HINSTANCE Instance,
           DWORD ByteToLock = (SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample)
                               % SoundOutput.SecondaryBufferSize;
           DWORD BytesToWrite;
-          if (ByteToLock == PlayCursor)
-          {
-            BytesToWrite = 0;
-          }
-          else if (ByteToLock > PlayCursor)
+          if (ByteToLock > PlayCursor)
           {
             BytesToWrite = SoundOutput.SecondaryBufferSize - ByteToLock;
             BytesToWrite += PlayCursor;
