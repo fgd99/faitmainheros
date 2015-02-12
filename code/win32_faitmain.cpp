@@ -612,7 +612,7 @@ WinMain(HINSTANCE Instance,
         if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
         {
           // On remplit le buffer secondaire en fonction d'où se trouve le curseur de lecture
-          // ce qui mériterait une meilleure gestion de l'état de lecture
+          // ce qui mériterait une meilleure gestion de l'état de lecture (lower latency offset)
           DWORD ByteToLock = (SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample)
                               % SoundOutput.SecondaryBufferSize;
           DWORD BytesToWrite;
