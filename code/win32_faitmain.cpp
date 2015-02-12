@@ -574,13 +574,14 @@ WinMain(HINSTANCE Instance,
             uint16 StickY = Pad->sThumbLY;
 
             // Test d'utilisation du DPAD de la manette
-            if (Up) YOffset += 2;
-            if (Down) YOffset -= 2;
-            if (Right) XOffset -= 4;
+            if (Up) YOffset = 4;
+            if (Down) YOffset = -4;
+            if (Right) XOffset = 4;
+            if (Left) XOffset = -4;
 
 			      // Test d'utilisation du stick de la manette
-			      XOffset += StickX >> 12;
-			      YOffset += StickY >> 12;
+			      XOffset = StickX >> 12;
+			      YOffset = StickY >> 12;
 
             // Vibration de la manette
             XINPUT_VIBRATION Vibration;
@@ -644,9 +645,6 @@ WinMain(HINSTANCE Instance,
         Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
                                    Dimension.Width, Dimension.Height);
         ReleaseDC(Window, DeviceContext);
-
-        // Pour animer différemment le gradient
-        ++XOffset;
       }
     }
     else
