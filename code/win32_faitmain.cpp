@@ -415,6 +415,7 @@ struct win32_sound_output
   int HalfWavePeriod;
   int BytesPerSample;
   int SecondaryBufferSize;
+  int LatencySampleCount;
 };
 
 internal void
@@ -520,7 +521,8 @@ WinMain(HINSTANCE Instance,
       SoundOutput.HalfWavePeriod = SoundOutput.WavePeriod / 2;
       SoundOutput.BytesPerSample = sizeof(uint16) * 2;
       SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;      
-      
+      SoundOutput.LatencySampleCount = SoundOutput.SamplesPerSecond / 15; // On aimerait 60 comme le nb img/s
+
       Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
       // Premièr remplissage du buffer pour le son
       Win32FillSoundBuffer(&SoundOutput, 0, SoundOutput.SecondaryBufferSize);
@@ -579,8 +581,8 @@ WinMain(HINSTANCE Instance,
             if (Right) XOffset -= 4;
 
 			      // Test d'utilisation du stick de la manette
-			      XOffset += StickX >> 12;
-			      YOffset += StickY >> 12;
+			      // XOffset += StickX >> 12;
+			      // YOffset += StickY >> 12;
 
             // Vibration de la manette
             XINPUT_VIBRATION Vibration;
@@ -603,6 +605,10 @@ WinMain(HINSTANCE Instance,
               // Pour le moment on copie/colle mais il faudra en faire une fonction
               SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
             }
+
+            // Pour jouer avec la fréquence du son avec le stick
+            SoundOutput.ToneHz = 512 * (int)(256.0f * ((real32)StickY / 30000.0f));
+            SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
           }
           else
           {
@@ -624,15 +630,17 @@ WinMain(HINSTANCE Instance,
           // ce qui mériterait une meilleure gestion de l'état de lecture (lower latency offset)
           DWORD ByteToLock = (SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample)
                               % SoundOutput.SecondaryBufferSize;
+          DWORD TargetCursor = (PlayCursor + (SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample))
+                                % SoundOutput.SecondaryBufferSize;
           DWORD BytesToWrite;
-          if (ByteToLock > PlayCursor)
+          if (ByteToLock > TargetCursor)
           {
             BytesToWrite = SoundOutput.SecondaryBufferSize - ByteToLock;
-            BytesToWrite += PlayCursor;
+            BytesToWrite += TargetCursor;
           }
           else
           {
-            BytesToWrite = PlayCursor - ByteToLock;
+            BytesToWrite = TargetCursor - ByteToLock;
           }
 
           Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite);
