@@ -579,6 +579,10 @@ WinMain(HINSTANCE Instance,
             if (Up) YOffset += 2;
             if (Down) YOffset -= 2;
             if (Right) XOffset -= 4;
+            if (Up) YOffset = 4;
+            if (Down) YOffset = -4;
+            if (Right) XOffset = 4;
+            if (Left) XOffset = -4;
 
 			      // Test d'utilisation du stick de la manette
 			      // XOffset += StickX >> 12;
