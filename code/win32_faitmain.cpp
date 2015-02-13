@@ -576,13 +576,11 @@ WinMain(HINSTANCE Instance,
             uint16 StickY = Pad->sThumbLY;
 
             // Test d'utilisation du DPAD de la manette
-            if (Up) YOffset += 2;
-            if (Down) YOffset -= 2;
-            if (Right) XOffset -= 4;
-            if (Up) YOffset = 4;
-            if (Down) YOffset = -4;
-            if (Right) XOffset = 4;
-            if (Left) XOffset = -4;
+            #define PITCH 4
+            if (Up) YOffset += PITCH;
+            if (Down) YOffset -= PITCH;
+            if (Right) XOffset += PITCH;
+            if (Left) XOffset -= PITCH;
 
 			      // Test d'utilisation du stick de la manette
 			      // XOffset += StickX >> 12;
