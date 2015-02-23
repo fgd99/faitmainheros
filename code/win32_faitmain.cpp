@@ -40,7 +40,7 @@ struct win32_offscreen_buffer {
 };
 
 // variables globales pour le moment, on gèrera autrement plus tard
-global_variable bool GlobalRunning;
+global_variable bool32 GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 
@@ -93,6 +93,8 @@ Win32LoadXInput(void) {
   HMODULE XInputLibrary = LoadLibraryA("xinput1_4.dll");
   // on essaye une version un peu plus ancienne qui sera présente sur plus de machines si on n'a pas la 1.4
   if (!XInputLibrary) XInputLibrary = LoadLibraryA("xinput1_3.dll");
+  // Autre version alternative
+  if (!XInputLibrary) XInputLibrary = LoadLibraryA("xinput9_1_0.dll");
   if (XInputLibrary)
   {
     XInputGetState_ = (x_input_get_state*)GetProcAddress(XInputLibrary, "XInputGetState");
@@ -327,8 +329,8 @@ Win32MainWindowCallback(HWND Window,
         // On vérifie les bits de LParam (cf. MSDN pour les valeurs)
         #define KeyMessageWasDownBit (1 << 30)
         #define KeyMessageIsDownBit (1 << 31)
-        bool WasDown = ((LParam & KeyMessageWasDownBit) != 0);
-        bool IsDown = ((LParam & KeyMessageIsDownBit) == 0);
+        bool32 WasDown = ((LParam & KeyMessageWasDownBit) != 0);
+        bool32 IsDown = ((LParam & KeyMessageIsDownBit) == 0);
 
         if (WasDown != IsDown) // Pour éviter les répétitions de touches lorsqu'elles sont enfoncées
         {
