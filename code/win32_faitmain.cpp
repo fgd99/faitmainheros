@@ -585,8 +585,10 @@ WinMain(HINSTANCE Instance,
             if (Left) XOffset -= PITCH;
 
 			      // Test d'utilisation du stick de la manette
-			      // XOffset += StickX >> 12;
-			      // YOffset += StickY >> 12;
+            // Il faudra prendre en compte la DEAD ZONE de la manette pour plus de précision
+            // Avec XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE et ...RIGHT...
+			      XOffset += StickX / 4096;
+			      YOffset += StickY / 4096;
 
             // Vibration de la manette
             XINPUT_VIBRATION Vibration;
