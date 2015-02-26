@@ -470,6 +470,12 @@ WinMain(HINSTANCE Instance,
         LPSTR CommandLine,
         int ShowCode)
 {
+  // QueryPerformanceFrequency va permettre de connaître la fréquence associée à QueryPerformanceCounter
+  // et nous permettre d'avoir le nombre d'images par seconde.
+  LARGE_INTEGER PerfCountFrequencyResult;
+  QueryPerformanceFrequency(&PerfCountFrequencyResult);
+  int64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+
   // On essaye de charger les fonctions de la dll qui gère les manettes
   Win32LoadXInput();
 
@@ -530,6 +536,10 @@ WinMain(HINSTANCE Instance,
       Win32FillSoundBuffer(&SoundOutput, 0, SoundOutput.SecondaryBufferSize);
       // On lance la lecture du buffer pour le son
       GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+
+      // On utilise QueryPerformanceCounter pour mesurer le nombre d'images par seconde
+      LARGE_INTEGER LastCounter;
+      QueryPerformanceCounter(&LastCounter);
 
       GlobalRunning = true;
       // boucle infinie pour traiter tous les messages
@@ -661,6 +671,19 @@ WinMain(HINSTANCE Instance,
 
         // Pour animer différemment le gradient
         ++XOffset;
+
+        // Mesure du nombre d'images par seconde
+        LARGE_INTEGER EndCounter;
+        QueryPerformanceCounter(&EndCounter);
+        int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+        int32 MSPerFrame = ((1000*CounterElapsed) / PerfCountFrequency);
+
+        char Buffer[256];
+        wsprintf(Buffer, "Milliseconds/frame: %dms\n", MSPerFrame);
+        OutputDebugStringA(Buffer);
+
+        // Remplacement du compteur d'images
+        LastCounter = EndCounter;
       }
     }
     else
