@@ -677,9 +677,10 @@ WinMain(HINSTANCE Instance,
         QueryPerformanceCounter(&EndCounter);
         int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
         int32 MSPerFrame = ((1000*CounterElapsed) / PerfCountFrequency);
+        int32 FPS = PerfCountFrequency / CounterElapsed;
 
         char Buffer[256];
-        wsprintf(Buffer, "Milliseconds/frame: %dms\n", MSPerFrame);
+        wsprintf(Buffer, "Milliseconds/frame: %dms / %d FPS\n", MSPerFrame, FPS);
         OutputDebugStringA(Buffer);
 
         // Remplacement du compteur d'images
