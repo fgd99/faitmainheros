@@ -477,7 +477,7 @@ WinMain(HINSTANCE Instance,
   QueryPerformanceFrequency(&PerfCountFrequencyResult);
   int64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
 
-  int64 LastCycleCount = __rdtsc();
+  uint64 LastCycleCount = __rdtsc();
 
   // On essaye de charger les fonctions de la dll qui gère les manettes
   Win32LoadXInput();
@@ -678,8 +678,8 @@ WinMain(HINSTANCE Instance,
         // Mesure du nombre d'images par seconde
         LARGE_INTEGER EndCounter;
         QueryPerformanceCounter(&EndCounter);
-        int64 EndCycleCount = __rdtsc();
-        int64 CyclesElapsed = EndCycleCount - LastCycleCount;
+        uint64 EndCycleCount = __rdtsc();
+        uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
         int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
 
         real32 MSPerFrame = (1000.0f*(real32)CounterElapsed) / (real32)PerfCountFrequency;
