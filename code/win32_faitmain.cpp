@@ -687,7 +687,7 @@ WinMain(HINSTANCE Instance,
         real32 MCPF = (real32)CyclesElapsed / 1000000.0f;
 
         char Buffer[256];
-        sprintf(Buffer, "%f ms/f, %f f/s, %f Mc/f\n", MSPerFrame, FPS, MCPF);
+        sprintf(Buffer, "%0.2f ms/f, %0.2f f/s, %0.2f Mc/f\n", MSPerFrame, FPS, MCPF);
         OutputDebugStringA(Buffer);
 
         // Remplacement du compteur d'images
