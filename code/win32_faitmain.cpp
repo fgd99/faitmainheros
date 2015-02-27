@@ -3,6 +3,7 @@
 #include <Xinput.h> // Pour la gestion des entrées (manette...)
 #include <dsound.h> // Pour jouer du son avec DirectSound
 #include <math.h>   // Fonctions mathématiques
+#include <stdio.h>
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
 #define internal static // fonctions non visible depuis l'extérieur de ce fichier
@@ -476,6 +477,8 @@ WinMain(HINSTANCE Instance,
   QueryPerformanceFrequency(&PerfCountFrequencyResult);
   int64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
 
+  int64 LastCycleCount = __rdtsc();
+
   // On essaye de charger les fonctions de la dll qui gère les manettes
   Win32LoadXInput();
 
@@ -675,16 +678,21 @@ WinMain(HINSTANCE Instance,
         // Mesure du nombre d'images par seconde
         LARGE_INTEGER EndCounter;
         QueryPerformanceCounter(&EndCounter);
+        int64 EndCycleCount = __rdtsc();
+        int64 CyclesElapsed = EndCycleCount - LastCycleCount;
         int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
-        int32 MSPerFrame = ((1000*CounterElapsed) / PerfCountFrequency);
-        int32 FPS = PerfCountFrequency / CounterElapsed;
+
+        real32 MSPerFrame = (1000.0f*(real32)CounterElapsed) / (real32)PerfCountFrequency;
+        real32 FPS = (real32)PerfCountFrequency / (real32)CounterElapsed;
+        real32 MCPF = (real32)CyclesElapsed / 1000000.0f;
 
         char Buffer[256];
-        wsprintf(Buffer, "Milliseconds/frame: %dms / %d FPS\n", MSPerFrame, FPS);
+        sprintf(Buffer, "%f ms/f, %f f/s, %f Mc/f\n", MSPerFrame, FPS, MCPF);
         OutputDebugStringA(Buffer);
 
         // Remplacement du compteur d'images
         LastCounter = EndCounter;
+        LastCycleCount = EndCycleCount;
       }
     }
     else
