@@ -10,9 +10,8 @@
 #define local_persist static     // variable visibles juste dans le scope où elle définie
 #define global_variable static   // variable visible dans tous le fichiers (globale)
 
-#define PI32 3.14159265358979323846
-
 // Constantes
+#define PI32 3.14159265358979323846
 #define XUSER_MAX_COUNT 4 // Normalement définie dans Xinput.h, absente de VS2010
 
 // Quelques définitions de types d'entiers pour ne pas être dépendant de la plateforme
@@ -29,6 +28,9 @@ typedef uint64_t uint64;
 
 typedef float real32;
 typedef double real64;
+
+// Implémentation du coeur du jeu indépendemment de la plateforme
+#include "faitmain.cpp"
 
 // Struct qui représente un backbuffer qui nous permet de dessiner
 struct win32_offscreen_buffer {
@@ -194,37 +196,6 @@ Win32InitDSound(HWND Window, uint32 SamplesPerSecond, uint32 BufferSize)
   else
   {
     OutputDebugStringA("Cannot load dsound.dll\n");
-  }
-}
-
-
-/* Fonction qui va dessiner dans le backbuffer un gradient de couleur étrange */
-internal void
-RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset)
-{
-  // on va se déplacer dans la mémoire par pas de 8 bits
-  uint8 *Row = (uint8 *)Buffer->Memory;
-  for (int Y = 0; Y < Buffer->Height; ++Y)
-  {
-    // Pixel par pixel, on commence par le premier de la ligne
-    uint32 *Pixel = (uint32 *)Row;
-    for (int X = 0; X < Buffer->Width; ++X)
-    {
-      /*
-        Pixels en little endian architecture
-                             0  1  2  3 ...
-        Pixels en mémoire : 00 00 00 00 ...
-        Couleur             BB GG RR XX
-        en hexa: 0xXXRRGGBB
-      */
-      uint8 Blue = (X + XOffset);
-      uint8 Green = (Y + YOffset);
-      uint8 Red = (X + Y);
-      // On peut changer directement la couleur d'un pixel :  *Pixel = 0xFF00FF00;
-      // ce qui équivaut en hexa à 0x00BBGG00
-      *Pixel++ = ((Red << 16) | (Green << 8) | Blue);
-    }
-    Row += Buffer->Pitch; // Ligne suivante
   }
 }
 
@@ -635,8 +606,14 @@ WinMain(HINSTANCE Instance,
           }
         }
 
-        // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut dessiner ici
-        RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
+        // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut calculer et rendre le jeu ici
+        //RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
+        game_offscreen_buffer Buffer = {};
+        Buffer.Memory = GlobalBackBuffer.Memory;
+        Buffer.Width = GlobalBackBuffer.Width;
+        Buffer.Height = GlobalBackBuffer.Height;
+        Buffer.Pitch = GlobalBackBuffer.Pitch;
+        GameUpdateAndRender(&Buffer, XOffset, YOffset);
 
         // Test de rendu DirectSound
         // Forme d'un sample :  int16 int16   int16 int16   int16 int16 ...
@@ -685,11 +662,11 @@ WinMain(HINSTANCE Instance,
         real32 MSPerFrame = (1000.0f*(real32)CounterElapsed) / (real32)PerfCountFrequency;
         real32 FPS = (real32)PerfCountFrequency / (real32)CounterElapsed;
         real32 MCPF = (real32)CyclesElapsed / 1000000.0f;
-
+#if 0
         char Buffer[256];
         sprintf(Buffer, "%0.2f ms/f, %0.2f f/s, %0.2f Mc/f\n", MSPerFrame, FPS, MCPF);
         OutputDebugStringA(Buffer);
-
+#endif
         // Remplacement du compteur d'images
         LastCounter = EndCounter;
         LastCycleCount = EndCycleCount;
