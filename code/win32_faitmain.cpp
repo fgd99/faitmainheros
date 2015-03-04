@@ -1,9 +1,4 @@
-#include <Windows.h>
 #include <stdint.h> // Types indépendents de la plateforme
-#include <Xinput.h> // Pour la gestion des entrées (manette...)
-#include <dsound.h> // Pour jouer du son avec DirectSound
-#include <math.h>   // Fonctions mathématiques
-#include <stdio.h>
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
 #define internal static // fonctions non visible depuis l'extérieur de ce fichier
@@ -31,6 +26,12 @@ typedef double real64;
 
 // Implémentation du coeur du jeu indépendemment de la plateforme
 #include "faitmain.cpp"
+
+#include <Windows.h>
+#include <Xinput.h> // Pour la gestion des entrées (manette...)
+#include <dsound.h> // Pour jouer du son avec DirectSound
+#include <math.h>   // Fonctions mathématiques
+#include <stdio.h>
 
 // Struct qui représente un backbuffer qui nous permet de dessiner
 struct win32_offscreen_buffer {
