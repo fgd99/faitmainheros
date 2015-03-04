@@ -27,6 +27,7 @@ typedef double real64;
 // Implémentation du coeur du jeu indépendemment de la plateforme
 #include "faitmain.cpp"
 
+// Includes spécifiques à la plateforme
 #include <Windows.h>
 #include <Xinput.h> // Pour la gestion des entrées (manette...)
 #include <dsound.h> // Pour jouer du son avec DirectSound
