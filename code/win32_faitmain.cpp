@@ -1,4 +1,5 @@
 #include <stdint.h> // Types indépendents de la plateforme
+#include <math.h>   // Fonctions mathématiques
 
 // Pour bien comprendre la différence de fonctionnement des variables statiques en C en fonction du scope
 #define internal static // fonctions non visible depuis l'extérieur de ce fichier
@@ -31,7 +32,6 @@ typedef double real64;
 #include <Windows.h>
 #include <Xinput.h> // Pour la gestion des entrées (manette...)
 #include <dsound.h> // Pour jouer du son avec DirectSound
-#include <math.h>   // Fonctions mathématiques
 #include <stdio.h>
 
 // Struct qui représente un backbuffer qui nous permet de dessiner
@@ -392,6 +392,7 @@ struct win32_sound_output
   int BytesPerSample;
   int SecondaryBufferSize;
   int LatencySampleCount;
+  real32 tSine;
 };
 
 internal void
@@ -413,21 +414,25 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD By
     int16 *SampleOut = (int16*)Region1;
     for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; ++SampleIndex)
     {
-      real32 t = 2.0f * PI32 * (real32)SoundOutput->RunningSampleIndex++ / (real32)SoundOutput->WavePeriod;
-      real32 SineValue = sinf(t);
+      real32 SineValue = sinf(SoundOutput->tSine);
       int16 SampleValue = (int16)(SineValue * SoundOutput->ToneVolume);
       *SampleOut++ = SampleValue;
       *SampleOut++ = SampleValue;
+
+      SoundOutput->tSine = 2.0f * PI32 * (real32)SoundOutput->RunningSampleIndex++ / (real32)SoundOutput->WavePeriod;
+      //++SoundOutput->RunningSampleIndex;
     }
     DWORD Region2SampleCount = Region2Size / SoundOutput->BytesPerSample;
     SampleOut = (int16*)Region2;
     for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; ++SampleIndex)
     {
-      real32 t = 2.0f * PI32 * (real32)SoundOutput->RunningSampleIndex++ / (real32)SoundOutput->WavePeriod;
-      real32 SineValue = sinf(t);
+      real32 SineValue = sinf(SoundOutput->tSine);
       int16 SampleValue = (int16)(SineValue * SoundOutput->ToneVolume);
       *SampleOut++ = SampleValue;
       *SampleOut++ = SampleValue;
+
+      SoundOutput->tSine = 2.0f * PI32 * (real32)SoundOutput->RunningSampleIndex++ / (real32)SoundOutput->WavePeriod;
+      //++SoundOutput->RunningSampleIndex;
     }
     // Unlocking the buffer
     GlobalSecondaryBuffer->Unlock(Region1, Region1Size, Region2, Region2Size);
@@ -609,13 +614,22 @@ WinMain(HINSTANCE Instance,
         }
 
         // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut calculer et rendre le jeu ici
-        //RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
+
+        // Passage du back buffer pour dessiner
         game_offscreen_buffer Buffer = {};
         Buffer.Memory = GlobalBackBuffer.Memory;
         Buffer.Width = GlobalBackBuffer.Width;
         Buffer.Height = GlobalBackBuffer.Height;
         Buffer.Pitch = GlobalBackBuffer.Pitch;
-        GameUpdateAndRender(&Buffer, XOffset, YOffset);
+
+        // Passage du buffer pour jouer du son
+        int16 Samples[(48000/30) * 2]; // *2 car en stéréo
+        game_sound_output_buffer SoundBuffer = {};
+        SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
+        SoundBuffer.SampleCount = SoundBuffer.SamplesPerSecond / 30; // On se cale à 30 FPS pour gérer le son (pour ne pas envoyer que des petits bouts de buffer)
+        SoundBuffer.Samples = Samples;
+
+        GameUpdateAndRender(&Buffer, XOffset, YOffset, &SoundBuffer);
 
         // Test de rendu DirectSound
         // Forme d'un sample :  int16 int16   int16 int16   int16 int16 ...

@@ -18,8 +18,16 @@ struct game_offscreen_buffer {
   int Pitch; // Pitch représente la taille d'une ligne en octets
 };
 
+struct game_sound_output_buffer
+{
+  int SamplesPerSecond;
+  int SampleCount;
+  int16 *Samples;
+};
+
 // Cette fonction va avoir besoin des informations de timing, du controlleur, le bitmap buffer et le sound buffer
-internal void GameUpdateAndRender(game_offscreen_buffer *Buffer, int XOffset, int YOffset);
+internal void GameUpdateAndRender(game_offscreen_buffer *Buffer, int XOffset, int YOffset,
+                                  game_sound_output_buffer *SoundBuffer);
 
 #define FAITMAIN_H
 #endif
