@@ -225,7 +225,7 @@ Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
   Buffer->Info.bmiHeader.biPlanes = 1;
   Buffer->Info.bmiHeader.biBitCount = 32;
   Buffer->Info.bmiHeader.biCompression = BI_RGB;
-  
+
   int BitmapMemorySize = (Buffer->Width * Buffer->Height) * Buffer->BytesPerPixel;
   // MEM_COMMIT réserve automatiquement la mémoire en théorie
   // mais il vaut mieux lui dire explicitement MEM_RESERVE
@@ -440,7 +440,7 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput,
                                             &Region2, &Region2Size,
                                             0)))
   {
-            
+
     // il faut bien avoir Region1Size et Region2Size valides
     DWORD Region1SampleCount = Region1Size / SoundOutput->BytesPerSample;
     int16 *DestSample = (int16*)Region1;
@@ -534,7 +534,7 @@ WinMain(HINSTANCE Instance,
       SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
       SoundOutput.HalfWavePeriod = SoundOutput.WavePeriod / 2;
       SoundOutput.BytesPerSample = sizeof(uint16) * 2;
-      SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;      
+      SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;
       SoundOutput.LatencySampleCount = SoundOutput.SamplesPerSecond / 15; // On aimerait 60 comme le nb img/s
 
       Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
@@ -655,7 +655,7 @@ WinMain(HINSTANCE Instance,
                         % SoundOutput.SecondaryBufferSize;
           TargetCursor = (PlayCursor + (SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample))
                           % SoundOutput.SecondaryBufferSize;
-          
+
           if (ByteToLock > TargetCursor)
           {
             BytesToWrite = SoundOutput.SecondaryBufferSize - ByteToLock;

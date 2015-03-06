@@ -1,0 +1,10 @@
+{
+  "shell_cmd": "build",
+  "file_regex": "^ *([A-z]:.*)[(]([0-9]+)[)]",
+  "working_dir": "${project_path:${folder}}",
+  "windows":
+  {
+    "cmd": ["build.bat"],
+    "encoding": "cp1252"
+  }
+}
