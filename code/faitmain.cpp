@@ -15,8 +15,7 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer)
     int16 SampleValue = (int16)(SineValue * ToneVolume);
     *SampleOut++ = SampleValue;
     *SampleOut++ = SampleValue;
-
-    tSine = 2.0f * PI32 * 1.0f / (real32)WavePeriod;
+    tSine = 2.0f * PI32 * SampleIndex / (real32)WavePeriod;
   }
 }
 

@@ -396,7 +396,39 @@ struct win32_sound_output
 };
 
 internal void
-Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD BytesToWrite)
+Win32ClearSoundBuffer(win32_sound_output *SoundOutput)
+{
+  VOID *Region1;
+  DWORD Region1Size;
+  VOID *Region2;
+  DWORD Region2Size;
+
+  if (SUCCEEDED(GlobalSecondaryBuffer->Lock(0, SoundOutput->SecondaryBufferSize,
+                                            &Region1, &Region1Size,
+                                            &Region2, &Region2Size,
+                                            0)))
+  {
+    uint8 *DestSample = (uint8*)Region1;
+    for (DWORD ByteIndex = 0; ByteIndex < Region1Size; ++ByteIndex)
+    {
+      *DestSample++ = 0;
+    }
+
+    DestSample = (uint8*)Region2;
+    for (DWORD ByteIndex = 0; ByteIndex < Region2Size; ++ByteIndex)
+    {
+      *DestSample++ = 0;
+    }
+
+    // Unlocking the buffer
+    GlobalSecondaryBuffer->Unlock(Region1, Region1Size, Region2, Region2Size);
+  }
+}
+
+internal void
+Win32FillSoundBuffer(win32_sound_output *SoundOutput,
+                     DWORD ByteToLock, DWORD BytesToWrite,
+                     game_sound_output_buffer *SourceBuffer)
 {
   VOID *Region1;
   DWORD Region1Size;
@@ -411,28 +443,21 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteToLock, DWORD By
             
     // il faut bien avoir Region1Size et Region2Size valides
     DWORD Region1SampleCount = Region1Size / SoundOutput->BytesPerSample;
-    int16 *SampleOut = (int16*)Region1;
+    int16 *DestSample = (int16*)Region1;
+    int16 *SourceSample = SourceBuffer->Samples;
     for (DWORD SampleIndex = 0; SampleIndex < Region1SampleCount; ++SampleIndex)
     {
-      real32 SineValue = sinf(SoundOutput->tSine);
-      int16 SampleValue = (int16)(SineValue * SoundOutput->ToneVolume);
-      *SampleOut++ = SampleValue;
-      *SampleOut++ = SampleValue;
-
-      SoundOutput->tSine = 2.0f * PI32 * (real32)SoundOutput->RunningSampleIndex++ / (real32)SoundOutput->WavePeriod;
-      //++SoundOutput->RunningSampleIndex;
+      *DestSample++ = *SourceSample++;
+      *DestSample++ = *SourceSample++;
+      ++SoundOutput->RunningSampleIndex;
     }
     DWORD Region2SampleCount = Region2Size / SoundOutput->BytesPerSample;
-    SampleOut = (int16*)Region2;
+    DestSample = (int16*)Region2;
     for (DWORD SampleIndex = 0; SampleIndex < Region2SampleCount; ++SampleIndex)
     {
-      real32 SineValue = sinf(SoundOutput->tSine);
-      int16 SampleValue = (int16)(SineValue * SoundOutput->ToneVolume);
-      *SampleOut++ = SampleValue;
-      *SampleOut++ = SampleValue;
-
-      SoundOutput->tSine = 2.0f * PI32 * (real32)SoundOutput->RunningSampleIndex++ / (real32)SoundOutput->WavePeriod;
-      //++SoundOutput->RunningSampleIndex;
+      *DestSample++ = *SourceSample++;
+      *DestSample++ = *SourceSample++;
+      ++SoundOutput->RunningSampleIndex;
     }
     // Unlocking the buffer
     GlobalSecondaryBuffer->Unlock(Region1, Region1Size, Region2, Region2Size);
@@ -514,7 +539,7 @@ WinMain(HINSTANCE Instance,
 
       Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
       // Premièr remplissage du buffer pour le son
-      Win32FillSoundBuffer(&SoundOutput, 0, SoundOutput.SecondaryBufferSize);
+      Win32ClearSoundBuffer(&SoundOutput);
       // On lance la lecture du buffer pour le son
       GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
@@ -613,6 +638,36 @@ WinMain(HINSTANCE Instance,
           }
         }
 
+        // Test de rendu DirectSound
+        // Forme d'un sample :  int16 int16   int16 int16   int16 int16 ...
+        //                     (LEFT  RIGHT) (LEFT  RIGHT) (LEFT  RIGHT)...
+        DWORD PlayCursor;
+        DWORD WriteCursor;
+        DWORD BytesToWrite;
+        DWORD ByteToLock;
+        DWORD TargetCursor;
+        bool32 SoundIsValid = false;
+        if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
+        {
+          // On remplit le buffer secondaire en fonction d'où se trouve le curseur de lecture
+          // ce qui mériterait une meilleure gestion de l'état de lecture (lower latency offset)
+          ByteToLock = (SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample)
+                        % SoundOutput.SecondaryBufferSize;
+          TargetCursor = (PlayCursor + (SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample))
+                          % SoundOutput.SecondaryBufferSize;
+          
+          if (ByteToLock > TargetCursor)
+          {
+            BytesToWrite = SoundOutput.SecondaryBufferSize - ByteToLock;
+            BytesToWrite += TargetCursor;
+          }
+          else
+          {
+            BytesToWrite = TargetCursor - ByteToLock;
+          }
+          SoundIsValid = true;
+        }
+
         // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut calculer et rendre le jeu ici
 
         // Passage du back buffer pour dessiner
@@ -623,39 +678,17 @@ WinMain(HINSTANCE Instance,
         Buffer.Pitch = GlobalBackBuffer.Pitch;
 
         // Passage du buffer pour jouer du son
-        int16 Samples[(48000/30) * 2]; // *2 car en stéréo
+        int16 Samples[48000 * 2]; // *2 car en stéréo
         game_sound_output_buffer SoundBuffer = {};
         SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
-        SoundBuffer.SampleCount = SoundBuffer.SamplesPerSecond / 30; // On se cale à 30 FPS pour gérer le son (pour ne pas envoyer que des petits bouts de buffer)
+        SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
         SoundBuffer.Samples = Samples;
 
         GameUpdateAndRender(&Buffer, XOffset, YOffset, &SoundBuffer);
 
-        // Test de rendu DirectSound
-        // Forme d'un sample :  int16 int16   int16 int16   int16 int16 ...
-        //                     (LEFT  RIGHT) (LEFT  RIGHT) (LEFT  RIGHT)...
-        DWORD PlayCursor;
-        DWORD WriteCursor;
-        if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
+        if (SoundIsValid)
         {
-          // On remplit le buffer secondaire en fonction d'où se trouve le curseur de lecture
-          // ce qui mériterait une meilleure gestion de l'état de lecture (lower latency offset)
-          DWORD ByteToLock = (SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample)
-                              % SoundOutput.SecondaryBufferSize;
-          DWORD TargetCursor = (PlayCursor + (SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample))
-                                % SoundOutput.SecondaryBufferSize;
-          DWORD BytesToWrite;
-          if (ByteToLock > TargetCursor)
-          {
-            BytesToWrite = SoundOutput.SecondaryBufferSize - ByteToLock;
-            BytesToWrite += TargetCursor;
-          }
-          else
-          {
-            BytesToWrite = TargetCursor - ByteToLock;
-          }
-
-          Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite);
+          Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
         }
 
         // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
