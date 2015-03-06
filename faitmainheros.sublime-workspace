@@ -32,10 +32,18 @@
 			}
 		},
 		{
+			"file": "build.bat",
+			"settings":
+			{
+				"buffer_size": 249,
+				"line_ending": "Windows"
+			}
+		},
+		{
 			"file": "code/win32_faitmain.cpp",
 			"settings":
 			{
-				"buffer_size": 26971,
+				"buffer_size": 26941,
 				"line_ending": "Windows"
 			}
 		},
@@ -51,7 +59,15 @@
 			"file": "/C/Users/domingug/AppData/Roaming/Sublime Text 3/Packages/User/faitmain.sublime-build",
 			"settings":
 			{
-				"buffer_size": 33,
+				"buffer_size": 193,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/c/program files (x86)/microsoft visual studio 10.0/vc/include/excpt.h",
+			"settings":
+			{
+				"buffer_size": 2764,
 				"line_ending": "Windows"
 			}
 		}
@@ -146,11 +162,12 @@
 	],
 	"file_history":
 	[
+		"/E/dev/GitHub/faitmainheros/edit.bat",
+		"/E/dev/GitHub/faitmainheros/build.bat",
+		"/c/program files (x86)/microsoft visual studio 10.0/vc/include/excpt.h",
 		"/C/Users/domingug/AppData/Roaming/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
 		"/E/dev/GitHub/faitmainheros/code/win32_faitmain.cpp",
-		"/E/dev/GitHub/faitmainheros/edit.bat",
 		"/C/Users/domingug/AppData/Roaming/Sublime Text 3/Packages/User/faitmain.sublime-build",
-		"/E/dev/GitHub/faitmainheros/build.bat",
 		"/E/h",
 		"/E/help",
 		"/E/dev/projects/LNInsight/API/node_modules/json2csv/lib/json2csv.js",
@@ -233,7 +250,7 @@
 	"groups":
 	[
 		{
-			"selected": 4,
+			"selected": 0,
 			"sheets":
 			[
 				{
@@ -249,8 +266,38 @@
 						"selection":
 						[
 							[
-								230,
-								230
+								582,
+								582
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "code/faitmain.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 798,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								229,
+								229
 							]
 						],
 						"settings":
@@ -267,12 +314,12 @@
 					"type": "text"
 				},
 				{
-					"buffer": 1,
-					"file": "code/faitmain.h",
+					"buffer": 2,
+					"file": "build.bat",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 798,
+						"buffer_size": 249,
 						"regions":
 						{
 						},
@@ -285,32 +332,30 @@
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C++.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
+							"syntax": "Packages/Batch File/Batch File.tmLanguage"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 4,
+					"stack_index": 2,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
+					"buffer": 3,
 					"file": "code/win32_faitmain.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 26971,
+						"buffer_size": 26941,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1344,
-								1344
+								1405,
+								1405
 							]
 						],
 						"settings":
@@ -319,15 +364,15 @@
 							"tab_size": 2,
 							"translate_tabs_to_spaces": true
 						},
-						"translation.x": -0.0,
-						"translation.y": 75.0,
+						"translation.x": 0.0,
+						"translation.y": 300.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 4,
 					"file": "/C/Users/domingug/AppData/Roaming/Sublime Text 3/Packages/User/Preferences.sublime-settings",
 					"semi_transient": false,
 					"settings":
@@ -353,24 +398,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 6,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 5,
 					"file": "/C/Users/domingug/AppData/Roaming/Sublime Text 3/Packages/User/faitmain.sublime-build",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 33,
+						"buffer_size": 193,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								29,
-								29
+								186,
+								186
 							]
 						],
 						"settings":
@@ -382,7 +427,37 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "/c/program files (x86)/microsoft visual studio 10.0/vc/include/excpt.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2764,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								596,
+								596
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 205.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
 					"type": "text"
 				}
 			]
@@ -421,7 +496,7 @@
 	"menu_visible": true,
 	"output.exec":
 	{
-		"height": 346.0
+		"height": 307.0
 	},
 	"output.find_results":
 	{
