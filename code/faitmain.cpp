@@ -1,11 +1,11 @@
 #include "faitmain.h"
 
 internal void
-GameOutputSound(game_sound_output_buffer *SoundBuffer)
+GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
   local_persist real32 tSine;
   int16 ToneVolume = 3000;
-  int ToneHz = 256;
+  // int ToneHz = 256;
   int WavePeriod = SoundBuffer->SamplesPerSecond / ToneHz;
 
   int16 *SampleOut = SoundBuffer->Samples;
@@ -51,8 +51,8 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset)
 
 internal void
 GameUpdateAndRender(game_offscreen_buffer *Buffer, int XOffset, int YOffset,
-                    game_sound_output_buffer *SoundBuffer)
+                    game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
-  GameOutputSound(SoundBuffer);
+  GameOutputSound(SoundBuffer, ToneHz);
   RenderWeirdGradient(Buffer, XOffset, YOffset);
 }

@@ -27,7 +27,7 @@ struct game_sound_output_buffer
 
 // Cette fonction va avoir besoin des informations de timing, du controlleur, le bitmap buffer et le sound buffer
 internal void GameUpdateAndRender(game_offscreen_buffer *Buffer, int XOffset, int YOffset,
-                                  game_sound_output_buffer *SoundBuffer);
+                                  game_sound_output_buffer *SoundBuffer, int ToneHz);
 
 #define FAITMAIN_H
 #endif

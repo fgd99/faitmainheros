@@ -547,6 +547,10 @@ WinMain(HINSTANCE Instance,
       LARGE_INTEGER LastCounter;
       QueryPerformanceCounter(&LastCounter);
 
+      // On alloue en une seule fois un buffer qui va être utilisé pour passer le son
+      int16 *Samples = (int16*)VirtualAlloc(0, SoundOutput.SecondaryBufferSize,
+                                            MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+
       GlobalRunning = true;
       // boucle infinie pour traiter tous les messages
       while (GlobalRunning)
@@ -678,13 +682,12 @@ WinMain(HINSTANCE Instance,
         Buffer.Pitch = GlobalBackBuffer.Pitch;
 
         // Passage du buffer pour jouer du son
-        int16 Samples[48000 * 2]; // *2 car en stéréo
         game_sound_output_buffer SoundBuffer = {};
         SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
         SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
         SoundBuffer.Samples = Samples;
 
-        GameUpdateAndRender(&Buffer, XOffset, YOffset, &SoundBuffer);
+        GameUpdateAndRender(&Buffer, XOffset, YOffset, &SoundBuffer, SoundOutput.ToneHz);
 
         if (SoundIsValid)
         {
