@@ -44,6 +44,18 @@ struct win32_offscreen_buffer {
   int Pitch; // Pitch représente la taille d'une ligne en octets
 };
 
+// Struct qui représente un buffer pour jouer du son
+struct win32_sound_output
+{
+  int SamplesPerSecond;
+  int16 ToneVolume;
+  uint32 RunningSampleIndex;
+  int BytesPerSample;
+  int SecondaryBufferSize;
+  int LatencySampleCount;
+  real32 tSine;
+};
+
 // variables globales pour le moment, on gèrera autrement plus tard
 global_variable bool32 GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
@@ -381,20 +393,6 @@ Win32MainWindowCallback(HWND Window,
   return(Result);
 }
 
-struct win32_sound_output
-{
-  int SamplesPerSecond;
-  int ToneHz;
-  int16 ToneVolume;
-  uint32 RunningSampleIndex;
-  int WavePeriod;
-  int HalfWavePeriod;
-  int BytesPerSample;
-  int SecondaryBufferSize;
-  int LatencySampleCount;
-  real32 tSine;
-};
-
 internal void
 Win32ClearSoundBuffer(win32_sound_output *SoundOutput)
 {
@@ -521,18 +519,12 @@ WinMain(HINSTANCE Instance,
       // et s'en servir indéfiniment car on ne le partage pas
       HDC DeviceContext = GetDC(Window);
 
-      int XOffset = 0;
-      int YOffset = 0;
-
       // Initialisation de DirectSound et test de son
       // Pour le moment on a un buffer d'une seconde, on verra si ça suffit plus tard
       win32_sound_output SoundOutput = {};
       SoundOutput.SamplesPerSecond = 48000;
-      SoundOutput.ToneHz = 256; // Pas loin de middle C (Do)
       SoundOutput.ToneVolume = 6000;
       SoundOutput.RunningSampleIndex = 0;
-      SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
-      SoundOutput.HalfWavePeriod = SoundOutput.WavePeriod / 2;
       SoundOutput.BytesPerSample = sizeof(uint16) * 2;
       SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;
       SoundOutput.LatencySampleCount = SoundOutput.SamplesPerSecond / 15; // On aimerait 60 comme le nb img/s
@@ -599,16 +591,16 @@ WinMain(HINSTANCE Instance,
 
             // Test d'utilisation du DPAD de la manette
             #define PITCH 4
-            if (Up) YOffset += PITCH;
+            /*if (Up) YOffset += PITCH;
             if (Down) YOffset -= PITCH;
             if (Right) XOffset += PITCH;
-            if (Left) XOffset -= PITCH;
+            if (Left) XOffset -= PITCH;*/
 
 			      // Test d'utilisation du stick de la manette
             // Il faudra prendre en compte la DEAD ZONE de la manette pour plus de précision
             // Avec XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE et ...RIGHT...
-			      XOffset += StickX / 4096;
-			      YOffset += StickY / 4096;
+			      //XOffset += StickX / 4096;
+			      //YOffset += StickY / 4096;
 
             // Vibration de la manette
             XINPUT_VIBRATION Vibration;
@@ -627,14 +619,14 @@ WinMain(HINSTANCE Instance,
             // Pour jouer avec le son lorsque l'on appuie sur un bouton
             if (AButton)
             {
-              SoundOutput.ToneHz = 512;
+              //SoundOutput.ToneHz = 512;
               // Pour le moment on copie/colle mais il faudra en faire une fonction
-              SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
+              //SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
             }
 
             // Pour jouer avec la fréquence du son avec le stick
-            SoundOutput.ToneHz = 512 * (int)(256.0f * ((real32)StickY / 30000.0f));
-            SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
+            //SoundOutput.ToneHz = 512 * (int)(256.0f * ((real32)StickY / 30000.0f));
+            //SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
           }
           else
           {
@@ -687,7 +679,7 @@ WinMain(HINSTANCE Instance,
         SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
         SoundBuffer.Samples = Samples;
 
-        GameUpdateAndRender(&Buffer, XOffset, YOffset, &SoundBuffer, SoundOutput.ToneHz);
+        GameUpdateAndRender(&Buffer, &SoundBuffer);
 
         if (SoundIsValid)
         {
@@ -700,9 +692,6 @@ WinMain(HINSTANCE Instance,
         Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
                                    Dimension.Width, Dimension.Height);
         ReleaseDC(Window, DeviceContext);
-
-        // Pour animer différemment le gradient
-        ++XOffset;
 
         // Mesure du nombre d'images par seconde
         LARGE_INTEGER EndCounter;
