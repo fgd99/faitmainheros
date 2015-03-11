@@ -590,8 +590,11 @@ WinMain(HINSTANCE Instance,
             // bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
 
             // Stick
-            uint16 StickX = Pad->sThumbLX;
-            uint16 StickY = Pad->sThumbLY;
+            NewController->IsAnalog = true;
+            NewController->StartX = OldController->EndX;
+            NewController->StartY = OldController->EndY;
+            NewController->MinX = NewController->MaxX = NewController->EndX = (real32)Pad->sThumbLX / 32768.0f; // On normalise pour avoir une valeur entre -1 et 1
+            NewController->MinY = NewController->MaxY = NewController->EndY = (real32)Pad->sThumbLY / 32768.0f; // Idem on normalise
 
             // Test d'utilisation du DPAD de la manette
             #define PITCH 4

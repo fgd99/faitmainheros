@@ -62,8 +62,8 @@ GameUpdateAndRender(game_input *Input,
   // Gestion des entrées
   if (Input0->IsAnalog)
   {
-    ToneHz = 256 + (int)(128.0f * Input0->EndX);
-    XOffset += (int)4.0f*Input0->EndY;
+    XOffset += (int)4.0f*Input0->EndX;
+    ToneHz = 256 + (int)(128.0f * Input0->EndY);
   }
   else
   {
