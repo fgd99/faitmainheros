@@ -18,12 +18,9 @@
     <ClCompile Include="..\..\code\win32_faitmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\code\faitmain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\code\faitmain.h">
+    <ClInclude Include="..\..\code\win32_faitmain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

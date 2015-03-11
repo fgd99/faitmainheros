@@ -76,11 +76,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\code\faitmain.cpp" />
     <ClCompile Include="..\..\code\win32_faitmain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\code\faitmain.h" />
+    <ClInclude Include="..\..\code\win32_faitmain.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
