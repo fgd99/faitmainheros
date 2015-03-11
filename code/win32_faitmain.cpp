@@ -434,6 +434,17 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput,
   }
 }
 
+internal void
+Win32ProcessXInputDigitalButton(DWORD XInputButtonState,
+                                game_button_state *OldState,
+                                DWORD ButtonBit,
+                                game_button_state *NewState)
+{
+  NewState->EndedDown = ((XInputButtonState & ButtonBit) == ButtonBit);
+  NewState->HalfTransitionCount = (OldState->EndedDown != NewState->EndedDown) ? 1 : 0;
+}
+
+
 /**
  * Main du programme qui va initialiser la fenêtre et gérer la boucle principale : attente des messages,
  * gestion de la manette et du clavier, dessin...
@@ -515,11 +526,17 @@ WinMain(HINSTANCE Instance,
       int16 *Samples = (int16*)VirtualAlloc(0, SoundOutput.SecondaryBufferSize,
                                             MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
+      // Gestion des entrées
+      game_input Input[2] = {};
+      game_input *NewInput = &Input[0];
+      game_input *OldInput = &Input[1];
+
       GlobalRunning = true;
       // boucle infinie pour traiter tous les messages
       while (GlobalRunning)
       {
         MSG Message;
+
         // On utilise PeekMessage au lieu de GetMessage qui est bloquant
         while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
         {
@@ -533,8 +550,16 @@ WinMain(HINSTANCE Instance,
         // Gestion des entrées, pour le moment on gère ça à chaque image
         // il faudra peut-être le faire plus fréquemment
         // surtout si le nombre d'images par seconde chute
-        for (DWORD ControllerIndex = 0; ControllerIndex < XUSER_MAX_COUNT; ++ControllerIndex)
+        int MaxControllerCount = XUSER_MAX_COUNT;
+        if (MaxControllerCount > ArrayCount(NewInput->Controllers))
         {
+          MaxControllerCount = ArrayCount(NewInput->Controllers);
+        }
+        for (DWORD ControllerIndex = 0; ControllerIndex < MaxControllerCount; ++ControllerIndex)
+        {
+          game_controller_input *OldController = &OldInput->Controllers[ControllerIndex];
+          game_controller_input *NewController = &NewInput->Controllers[ControllerIndex];
+
           XINPUT_STATE ControllerState;
           if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
           {
@@ -548,14 +573,21 @@ WinMain(HINSTANCE Instance,
             bool32 Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
             // Boutons
-            bool32 Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
-            bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-            bool32 LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-            bool32 RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-            bool32 AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
-            bool32 BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
-            bool32 XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
-            bool32 YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
+            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->A,
+                                            XINPUT_GAMEPAD_A, &NewController->A);
+            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->B,
+                                            XINPUT_GAMEPAD_B, &NewController->B);
+            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->X,
+                                            XINPUT_GAMEPAD_X, &NewController->X);
+            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->Y,
+                                            XINPUT_GAMEPAD_Y, &NewController->Y);
+            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->LeftShoulder,
+                                            XINPUT_GAMEPAD_LEFT_SHOULDER, &NewController->LeftShoulder);
+            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->RightShoulder,
+                                            XINPUT_GAMEPAD_RIGHT_SHOULDER, &NewController->RightShoulder);
+
+            // bool32 Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
+            // bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
 
             // Stick
             uint16 StickX = Pad->sThumbLX;
@@ -589,12 +621,12 @@ WinMain(HINSTANCE Instance,
             XInputSetState(0, &Vibration);
 
             // Pour jouer avec le son lorsque l'on appuie sur un bouton
-            if (AButton)
+            /*if (AButton)
             {
-              //SoundOutput.ToneHz = 512;
+              SoundOutput.ToneHz = 512;
               // Pour le moment on copie/colle mais il faudra en faire une fonction
-              //SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
-            }
+              SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
+            }*/
 
             // Pour jouer avec la fréquence du son avec le stick
             //SoundOutput.ToneHz = 512 * (int)(256.0f * ((real32)StickY / 30000.0f));
@@ -651,7 +683,9 @@ WinMain(HINSTANCE Instance,
         SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
         SoundBuffer.Samples = Samples;
 
-        GameUpdateAndRender(&Buffer, &SoundBuffer);
+        GameUpdateAndRender(NewInput,
+                            &Buffer,
+                            &SoundBuffer);
 
         if (SoundIsValid)
         {
@@ -683,6 +717,11 @@ WinMain(HINSTANCE Instance,
         // Remplacement du compteur d'images
         LastCounter = EndCounter;
         LastCycleCount = EndCycleCount;
+
+        // Gestion des entrées
+        game_input *Temp = NewInput;
+        NewInput = OldInput;
+        OldInput = Temp;
       }
     }
     else
