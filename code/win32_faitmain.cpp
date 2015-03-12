@@ -446,8 +446,8 @@ Win32ProcessXInputDigitalButton(DWORD XInputButtonState,
 
 
 /**
- * Main du programme qui va initialiser la fenêtre et gérer la boucle principale : attente des messages,
- * gestion de la manette et du clavier, dessin...
+ * Main du programme qui va initialiser la fenêtre et gérer la boucle principale :
+ * attente des messages, gestion de la manette et du clavier, dessin...
  **/
 int CALLBACK
 WinMain(HINSTANCE Instance,
@@ -573,18 +573,24 @@ WinMain(HINSTANCE Instance,
             bool32 Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
             // Boutons
-            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->A,
-                                            XINPUT_GAMEPAD_A, &NewController->A);
-            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->B,
-                                            XINPUT_GAMEPAD_B, &NewController->B);
-            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->X,
-                                            XINPUT_GAMEPAD_X, &NewController->X);
-            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->Y,
-                                            XINPUT_GAMEPAD_Y, &NewController->Y);
-            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->LeftShoulder,
-                                            XINPUT_GAMEPAD_LEFT_SHOULDER, &NewController->LeftShoulder);
-            Win32ProcessXInputDigitalButton(Pad->wButtons, &OldController->RightShoulder,
-                                            XINPUT_GAMEPAD_RIGHT_SHOULDER, &NewController->RightShoulder);
+            Win32ProcessXInputDigitalButton(
+              Pad->wButtons, &OldController->A,
+              XINPUT_GAMEPAD_A, &NewController->A);
+            Win32ProcessXInputDigitalButton(
+              Pad->wButtons, &OldController->B,
+              XINPUT_GAMEPAD_B, &NewController->B);
+            Win32ProcessXInputDigitalButton(
+              Pad->wButtons, &OldController->X,
+              XINPUT_GAMEPAD_X, &NewController->X);
+            Win32ProcessXInputDigitalButton(
+              Pad->wButtons, &OldController->Y,
+              XINPUT_GAMEPAD_Y, &NewController->Y);
+            Win32ProcessXInputDigitalButton(
+              Pad->wButtons, &OldController->LeftShoulder,
+              XINPUT_GAMEPAD_LEFT_SHOULDER, &NewController->LeftShoulder);
+            Win32ProcessXInputDigitalButton(
+              Pad->wButtons, &OldController->RightShoulder,
+              XINPUT_GAMEPAD_RIGHT_SHOULDER, &NewController->RightShoulder);
 
             // bool32 Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
             // bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
@@ -593,8 +599,14 @@ WinMain(HINSTANCE Instance,
             NewController->IsAnalog = true;
             NewController->StartX = OldController->EndX;
             NewController->StartY = OldController->EndY;
-            NewController->MinX = NewController->MaxX = NewController->EndX = (real32)Pad->sThumbLX / 32768.0f; // On normalise pour avoir une valeur entre -1 et 1
-            NewController->MinY = NewController->MaxY = NewController->EndY = (real32)Pad->sThumbLY / 32768.0f; // Idem on normalise
+            NewController->MinX
+              = NewController->MaxX
+              = NewController->EndX
+              = (real32)Pad->sThumbLX / 32768.0f; // On normalise pour avoir une valeur entre -1 et 1
+            NewController->MinY
+              = NewController->MaxY
+              = NewController->EndY
+              = (real32)Pad->sThumbLY / 32768.0f; // Idem on normalise
 
             // Test d'utilisation du DPAD de la manette
             #define PITCH 4
