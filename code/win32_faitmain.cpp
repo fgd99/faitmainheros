@@ -535,13 +535,13 @@ WinMain(HINSTANCE Instance,
                                                  GameMemory.PermanentStorageSize,
                                                  MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
       
-      GameMemory.TransientStorageSize = Gigabytes((uint64)4);
+      GameMemory.TransientStorageSize = Gigabytes((uint64)1);
       GameMemory.TransientStorage = VirtualAlloc(0,
                                                  GameMemory.TransientStorageSize,
                                                  MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
       // Si on ne peut pas allouer la mémoire réservée ce n'est pas la peine de lancer le jeu
-      if (Samples && GameMemory.PermanentStorage)
+      if (Samples && GameMemory.PermanentStorage && GameMemory.TransientStorage)
       {
         // Gestion des entrées
         game_input Input[2] = {};
