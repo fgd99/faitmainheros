@@ -3,6 +3,9 @@
 /*
   Macros utiles
 */
+#define Kilobytes(value) ((value)*1024)
+#define Megabytes(value) (Kilobytes(value)*1024)
+#define Gigabytes(value) (Megabytes(value)*1024)
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 /*
@@ -79,8 +82,25 @@ struct game_input
   game_controller_input Controllers[4];
 };
 
+struct game_state
+{
+  int ToneHz;
+  int BlueOffset;
+  int GreenOffset;
+};
+
+struct game_memory
+{
+  bool32 IsInitialized;
+  uint64 PermanentStorageSize;
+  void *PermanentStorage;
+  uint64 TransientStorageSize;
+  void *TransientStorage;
+};
+
 // Cette fonction va avoir besoin des informations de timing, du controlleur, le bitmap buffer et le sound buffer
-internal void GameUpdateAndRender(game_input *Input,
+internal void GameUpdateAndRender(game_memory *Memory,
+                                  game_input *Input,
                                   game_offscreen_buffer *Buffer,
                                   game_sound_output_buffer *SoundBuffer);
 
