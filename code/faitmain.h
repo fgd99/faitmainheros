@@ -3,11 +3,15 @@
 /*
   Macros utiles
 */
-#define Assert(Expression) \
-  if(!(Expression)) {*(int *)0 = 0;}
+#if FAITMAIN_LENT
+#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
+#else
+#define Assert(Expression)
+#endif
 #define Kilobytes(value) ((value)*1024)
 #define Megabytes(value) (Kilobytes(value)*1024)
 #define Gigabytes(value) (Megabytes(value)*1024)
+#define Terabytes(value) (Gigabytes(value)*1024)
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 /*

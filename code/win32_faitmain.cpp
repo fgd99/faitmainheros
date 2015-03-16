@@ -528,18 +528,28 @@ WinMain(HINSTANCE Instance,
                                             MEM_RESERVE|MEM_COMMIT,
                                             PAGE_READWRITE);
 
+
+#if FAITMAIN_INTERNAL
+      LPVOID BaseAddress = 0;
+#else
+      LPVOID BaseAddress = (LPVOID)Terabytes((uint64)2);
+#endif
+
       // On alloue la mémoire utilisée par le moteur du jeu en une fois
       game_memory GameMemory = {};
       GameMemory.PermanentStorageSize = Megabytes(64);
-      GameMemory.PermanentStorage = VirtualAlloc(0,
+      GameMemory.TransientStorageSize = Gigabytes((uint64)1);
+      uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
+      GameMemory.PermanentStorage = VirtualAlloc(BaseAddress,
                                                  GameMemory.PermanentStorageSize,
                                                  MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-      
-      GameMemory.TransientStorageSize = Gigabytes((uint64)1);
+      GameMemory.TransientStorage = ((uint8 *)GameMemory.PermanentStorage + 
+                                      GameMemory.PermanentStorageSize);
+      /*
       GameMemory.TransientStorage = VirtualAlloc(0,
                                                  GameMemory.TransientStorageSize,
                                                  MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-
+      */
       // Si on ne peut pas allouer la mémoire réservée ce n'est pas la peine de lancer le jeu
       if (Samples && GameMemory.PermanentStorage && GameMemory.TransientStorage)
       {
