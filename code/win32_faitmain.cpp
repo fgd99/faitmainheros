@@ -532,13 +532,13 @@ WinMain(HINSTANCE Instance,
 #if FAITMAIN_INTERNAL
       LPVOID BaseAddress = 0;
 #else
-      LPVOID BaseAddress = (LPVOID)Terabytes((uint64)2);
+      LPVOID BaseAddress = (LPVOID)Terabytes(2);
 #endif
 
       // On alloue la mémoire utilisée par le moteur du jeu en une fois
       game_memory GameMemory = {};
       GameMemory.PermanentStorageSize = Megabytes(64);
-      GameMemory.TransientStorageSize = Gigabytes((uint64)1);
+      GameMemory.TransientStorageSize = Gigabytes(1);
       uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
       GameMemory.PermanentStorage = VirtualAlloc(BaseAddress,
                                                  GameMemory.PermanentStorageSize,
