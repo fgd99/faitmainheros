@@ -79,6 +79,13 @@ GameUpdateAndRender(game_memory *Memory,
   game_state *GameState = (game_state*)Memory->PermanentStorage;
   if (!Memory->IsInitialized)
   {
+    char *Filename = "test.bmp";
+    void *BitmapMemory = DEBUGPlatformReadEntireFile(Filename);
+    if (BitmapMemory)
+    {
+      DEBUGPlatformFreeFileMemory(BitmapMemory);
+    }
+
     GameState->ToneHz = 256;
     GameState->BlueOffset = 0;
     GameState->GreenOffset = 0;

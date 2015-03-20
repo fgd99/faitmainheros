@@ -15,8 +15,23 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 /*
+  Petites fonctions utiles non dépendantes de la plateforme
+*/
+inline uint32
+SafeTruncateUint64(uint64 Value)
+{
+  Assert(Value <= 0xFFFFFFFF);
+  return (uint32)Value;
+}
+
+/*
   Services fournis par la couche plateforme au jeu
 */
+#if FAITMAIN_INTERNAL
+internal void *DEBUGPlatformReadEntireFile(char *Filename);
+internal void DEBUGPlatformFreeFileMemory(void *Memory);
+internal bool32 DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory);
+#endif
 
 /*
   Services fournis par le jeu à couche plateforme

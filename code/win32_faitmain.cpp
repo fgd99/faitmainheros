@@ -10,6 +10,9 @@
 #define PI32 3.14159265358979323846
 #define XUSER_MAX_COUNT 4 // Normalement définie dans Xinput.h, absente de VS2010
 
+// Je mets ces flags ici pour le moment en attendant de les définir dans VS
+#define FAITMAIN_INTERNAL 1
+
 // Quelques définitions de types d'entiers pour ne pas être dépendant de la plateforme
 typedef int8_t int8;
 typedef int16_t int16;
@@ -93,6 +96,66 @@ Win32LoadXInput(void) {
   {
     OutputDebugStringA("Cannot load xinput1_4.dll or xinput1_3.dll\n");
   }
+}
+
+/**
+ * Implémentation des fonctions spécifiques à la plateforme
+ * déclarées dans faitmain.h
+ **/
+internal void
+*DEBUGPlatformReadEntireFile(char *Filename)
+{
+  void *Result = 0;
+  HANDLE FileHandle = CreateFileA(
+    Filename,
+    GENERIC_READ,
+    FILE_SHARE_READ,
+    0,
+    OPEN_EXISTING,
+    0,
+    0);
+  if (FileHandle != INVALID_HANDLE_VALUE)
+  {
+    LARGE_INTEGER FileSize;
+    if(GetFileSizeEx(FileHandle, &FileSize))
+    {
+      uint32 FileSize32 = SafeTruncateUint64(FileSize.QuadPart);
+      Result = VirtualAlloc(0, FileSize32, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+      if (Result)
+      {
+        DWORD BytesRead;
+        if (ReadFile(FileHandle, Result, FileSize32, &BytesRead, 0) &&
+              (FileSize32 == BytesRead)) // On vérifie aussi si on a bien tout lu
+        {
+          // Le fichier a bien été lu
+
+        }
+        else
+        {
+          // On libère la mémoire immédiatement car le fichier n'a pas pu être ouvert
+          DEBUGPlatformFreeFileMemory(Result);
+          Result = 0;
+        }
+      }
+    }
+    CloseHandle(FileHandle);
+  }
+  return(Result);
+}
+
+internal void
+DEBUGPlatformFreeFileMemory(void *Memory)
+{
+  if(Memory)
+  {
+    VirtualFree(Memory, 0, MEM_RELEASE);
+  }
+}
+
+internal bool32
+DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory)
+{
+
 }
 
 // On effectue de même pour les fonctions de DirectSound avec des stubs
