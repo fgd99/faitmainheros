@@ -102,10 +102,10 @@ Win32LoadXInput(void) {
  * Implémentation des fonctions spécifiques à la plateforme
  * déclarées dans faitmain.h
  **/
-internal void
-*DEBUGPlatformReadEntireFile(char *Filename)
+internal debug_read_file_result
+DEBUGPlatformReadEntireFile(char *Filename)
 {
-  void *Result = 0;
+  debug_read_file_result Result = {};
   HANDLE FileHandle = CreateFileA(
     Filename,
     GENERIC_READ,
@@ -120,21 +120,21 @@ internal void
     if(GetFileSizeEx(FileHandle, &FileSize))
     {
       uint32 FileSize32 = SafeTruncateUint64(FileSize.QuadPart);
-      Result = VirtualAlloc(0, FileSize32, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-      if (Result)
+      Result.Contents = VirtualAlloc(0, FileSize32, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+      if (Result.Contents)
       {
         DWORD BytesRead;
-        if (ReadFile(FileHandle, Result, FileSize32, &BytesRead, 0) &&
+        if (ReadFile(FileHandle, Result.Contents, FileSize32, &BytesRead, 0) &&
               (FileSize32 == BytesRead)) // On vérifie aussi si on a bien tout lu
         {
           // Le fichier a bien été lu
-
+          Result.ContentsSize = FileSize32;
         }
         else
         {
           // On libère la mémoire immédiatement car le fichier n'a pas pu être ouvert
-          DEBUGPlatformFreeFileMemory(Result);
-          Result = 0;
+          DEBUGPlatformFreeFileMemory(Result.Contents);
+          Result.Contents = 0;
         }
       }
     }
@@ -155,7 +155,30 @@ DEBUGPlatformFreeFileMemory(void *Memory)
 internal bool32
 DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory)
 {
+  bool32 Result = false;
+  HANDLE FileHandle = CreateFileA(
+    Filename,
+    GENERIC_WRITE,
+    0,
+    0,
+    CREATE_ALWAYS,
+    0,
+    0);
+  if (FileHandle != INVALID_HANDLE_VALUE)
+  {
+    DWORD BytesWritten;
+    if (WriteFile(FileHandle, Memory, MemorySize, &BytesWritten, 0))
+    {
+      // Le fichier a bien été écrit
+      Result = (BytesWritten == MemorySize);
+    }
+    else
+    {
 
+    }
+    CloseHandle(FileHandle);
+  }
+  return(Result);
 }
 
 // On effectue de même pour les fonctions de DirectSound avec des stubs
