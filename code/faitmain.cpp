@@ -84,7 +84,7 @@ GameUpdateAndRender(game_memory *Memory,
     debug_read_file_result File = DEBUGPlatformReadEntireFile(Filename);
     if (File.Contents)
     {
-      DEBUGPlatformWriteEntireFile("c:\\test.out", File.ContentsSize, File.Contents);
+      DEBUGPlatformWriteEntireFile("test.out", File.ContentsSize, File.Contents);
       DEBUGPlatformFreeFileMemory(File.Contents);
     }
 
