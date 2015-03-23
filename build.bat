@@ -5,5 +5,5 @@ set path=C:\Users\Administrateur\Documents\faitmainheros\misc;%path%
 
 IF NOT EXIST build mkdir build
 pushd build
-cl -DFAITMAIN_INTERNAL=1 -DFAITMAIN_LENT=1 -DFAITMAIN_WIN32=1 -FC -Zi ..\code\win32_faitmain.cpp user32.lib Gdi32.lib
+cl -WX -W3 -wd4281 -DFAITMAIN_INTERNAL=1 -DFAITMAIN_LENT=1 -DFAITMAIN_WIN32=1 -FC -Zi ..\code\win32_faitmain.cpp user32.lib Gdi32.lib
 popd

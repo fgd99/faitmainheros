@@ -627,7 +627,7 @@ WinMain(HINSTANCE Instance,
       GameMemory.TransientStorageSize = Gigabytes(1);
       uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize;
       GameMemory.PermanentStorage = VirtualAlloc(BaseAddress,
-                                                 GameMemory.PermanentStorageSize,
+                                                 (SIZE_T)GameMemory.PermanentStorageSize,
                                                  MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
       GameMemory.TransientStorage = ((uint8 *)GameMemory.PermanentStorage + 
                                       GameMemory.PermanentStorageSize);
@@ -668,7 +668,7 @@ WinMain(HINSTANCE Instance,
           {
             MaxControllerCount = ArrayCount(NewInput->Controllers);
           }
-          for (DWORD ControllerIndex = 0;
+          for (int ControllerIndex = 0;
                ControllerIndex < MaxControllerCount;
                ++ControllerIndex)
           {

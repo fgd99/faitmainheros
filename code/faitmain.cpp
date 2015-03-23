@@ -15,7 +15,7 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
     int16 SampleValue = (int16)(SineValue * ToneVolume);
     *SampleOut++ = SampleValue;
     *SampleOut++ = SampleValue;
-    tSine += 2.0f * PI32 * 1.0f / (real32)WavePeriod;
+    tSine += (real32)(2.0f * PI32 * 1.0f / (real32)WavePeriod);
   }
 }
 
@@ -98,7 +98,7 @@ GameUpdateAndRender(game_memory *Memory,
   // Gestion des entrées
   if (Input0->IsAnalog)
   {
-    GameState->BlueOffset += (int)4.0f*Input0->EndX;
+    GameState->BlueOffset += (int)(4.0f*Input0->EndX);
     GameState->ToneHz = 256 + (int)(128.0f * Input0->EndY);
   }
   else
