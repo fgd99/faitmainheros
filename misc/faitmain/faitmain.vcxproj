@@ -53,7 +53,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <AdditionalOptions>-GR- -EHa- -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -DFAITMAIN_INTERNAL=1 -DFAITMAIN_LENT=1 -DFAITMAIN_WIN32=1 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-Gm- -GR- -EHa- -Oi -WX -W4 -wd4201 -wd4100 -wd4189 -DFAITMAIN_INTERNAL=1 -DFAITMAIN_LENT=1 -DFAITMAIN_WIN32=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
