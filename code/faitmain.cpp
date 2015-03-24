@@ -38,9 +38,9 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset)
       Couleur             BB GG RR XX
       en hexa: 0xXXRRGGBB
       */
-      uint8 Blue = (X + XOffset);
-      uint8 Green = (Y + YOffset);
-      uint8 Red = (X + Y);
+      uint8 Blue = (uint8)(X + XOffset);
+      uint8 Green = (uint8)(Y + YOffset);
+      uint8 Red = (uint8)(X + Y);
       // On peut changer directement la couleur d'un pixel :  *Pixel = 0xFF00FF00;
       // ce qui équivaut en hexa à 0x00BBGG00
       *Pixel++ = ((Red << 16) | (Green << 8) | Blue);
@@ -48,7 +48,7 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset)
     Row += Buffer->Pitch; // Ligne suivante
   }
 }
-
+/*
 internal game_state *
 GameStartup(void)
 {
@@ -67,7 +67,7 @@ GameShutdown(game_state *GameState)
 {
   delete GameState;
 }
-
+*/
 internal void
 GameUpdateAndRender(game_memory *Memory,
                     game_input *Input,

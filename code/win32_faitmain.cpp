@@ -10,9 +10,6 @@
 #define PI32 3.14159265358979323846
 #define XUSER_MAX_COUNT 4 // Normalement définie dans Xinput.h, absente de VS2010
 
-// Je mets ces flags ici pour le moment en attendant de les définir dans VS
-#define FAITMAIN_INTERNAL 1
-
 // Quelques définitions de types d'entiers pour ne pas être dépendant de la plateforme
 typedef int8_t int8;
 typedef int16_t int16;
@@ -369,7 +366,7 @@ Win32MainWindowCallback(HWND Window,
     case WM_KEYDOWN:
     case WM_KEYUP:
       {
-        uint32 VKCode = WParam;
+        uint32 VKCode = (uint32)WParam;
         // On vérifie les bits de LParam (cf. MSDN pour les valeurs)
         #define KeyMessageWasDownBit (1 << 30)
         #define KeyMessageIsDownBit (1 << 31)
