@@ -103,11 +103,13 @@ GameUpdateAndRender(game_memory *Memory,
   }
   else
   {
-
+    if (Input0->Up.EndedDown) {
+      GameState->BlueOffset += 10;
+    }
   }
 
   if (Input0->Down.EndedDown) {
-    GameState->GreenOffset += 1;
+    GameState->GreenOffset += 10;
   }
 
   GameOutputSound(SoundBuffer, GameState->ToneHz);

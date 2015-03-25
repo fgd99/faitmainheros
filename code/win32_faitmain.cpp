@@ -366,64 +366,7 @@ Win32MainWindowCallback(HWND Window,
     case WM_KEYDOWN:
     case WM_KEYUP:
       {
-        uint32 VKCode = (uint32)WParam;
-        // On vérifie les bits de LParam (cf. MSDN pour les valeurs)
-        #define KeyMessageWasDownBit (1 << 30)
-        #define KeyMessageIsDownBit (1 << 31)
-        bool32 WasDown = ((LParam & KeyMessageWasDownBit) != 0);
-        bool32 IsDown = ((LParam & KeyMessageIsDownBit) == 0);
-
-        if (WasDown != IsDown) // Pour éviter les répétitions de touches lorsqu'elles sont enfoncées
-        {
-          if (VKCode == 'Z')
-          {
-            OutputDebugStringA("Z\n");
-          }
-          else if (VKCode == 'S')
-          {
-            OutputDebugStringA("S\n");
-          }
-          else if (VKCode == 'Q')
-          {
-            OutputDebugStringA("Q\n");
-          }
-          else if (VKCode == 'D')
-          {
-            OutputDebugStringA("D\n");
-          }
-          else if (VKCode == VK_UP)
-          {
-            OutputDebugStringA("UP\n");
-          }
-          else if (VKCode == VK_DOWN)
-          {
-            OutputDebugStringA("DOWN\n");
-          }
-          else if (VKCode == VK_LEFT)
-          {
-            OutputDebugStringA("LEFT\n");
-          }
-          else if (VKCode == VK_RIGHT)
-          {
-            OutputDebugStringA("RIGHT\n");
-          }
-          else if (VKCode == VK_ESCAPE)
-          {
-            if (IsDown) OutputDebugStringA("ESCAPE IS DOWN\n");
-            if (WasDown) OutputDebugStringA("ESCAPE WAS DOWN\n");
-          }
-          else if (VKCode == VK_SPACE)
-          {
-            OutputDebugStringA("SPACE\n");
-          }
-        }
-        // Comme on capture les touches il faut gérer nous même le Alt-F4 pour quitter
-        // Normalement c'est DefWindowProc (en default) qui fait le boulot
-        bool32 AltKeyWasDown = (LParam & (1 << 29));
-        if ((VKCode == VK_F4) && AltKeyWasDown)
-        {
-          GlobalRunning = false;
-        }
+        Assert(!"Une entrée au clavier est passée au travers !!!");
       }
       break;
     case WM_PAINT:
@@ -517,6 +460,9 @@ Win32FillSoundBuffer(win32_sound_output *SoundOutput,
   }
 }
 
+/**
+ * Gestion de l'état des bouttons d'une manette
+ **/
 internal void
 Win32ProcessXInputDigitalButton(DWORD XInputButtonState,
                                 game_button_state *OldState,
@@ -527,6 +473,16 @@ Win32ProcessXInputDigitalButton(DWORD XInputButtonState,
   NewState->HalfTransitionCount = (OldState->EndedDown != NewState->EndedDown) ? 1 : 0;
 }
 
+/**
+ * Gestion de l'état des bouttons du clavier
+ **/
+internal void
+Win32ProcessKeyboardMessage(game_button_state *NewState,
+                            bool32 IsDown)
+{
+  NewState->EndedDown = IsDown;
+  ++NewState->HalfTransitionCount;
+}
 
 /**
  * Main du programme qui va initialiser la fenêtre et gérer la boucle principale :
@@ -646,15 +602,89 @@ WinMain(HINSTANCE Instance,
         while (GlobalRunning)
         {
           MSG Message;
+          game_controller_input *KeyboardController = &NewInput->Controllers[0];
+          game_controller_input ZeroController = {};
+          *KeyboardController = ZeroController;
 
           // On utilise PeekMessage au lieu de GetMessage qui est bloquant
           while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
           {
             if (Message.message == WM_QUIT) GlobalRunning = false;
-            // On demande à Windows de traiter le message
-            TranslateMessage(&Message);
-            // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
-            DispatchMessage(&Message);
+
+            // Test de passage des actions claviers au moteur de jeu
+            switch(Message.message)
+            {
+              case WM_SYSKEYDOWN:
+              case WM_SYSKEYUP:
+              case WM_KEYDOWN:
+              case WM_KEYUP:
+                {
+                  uint32 VKCode = (uint32)Message.wParam;
+                  // On vérifie les bits de LParam (cf. MSDN pour les valeurs)
+                  #define KeyMessageWasDownBit (1 << 30)
+                  #define KeyMessageIsDownBit (1 << 31)
+                  bool32 WasDown = ((Message.lParam & KeyMessageWasDownBit) != 0);
+                  bool32 IsDown = ((Message.lParam & KeyMessageIsDownBit) == 0);
+
+                  if (WasDown != IsDown) // Pour éviter les répétitions de touches lorsqu'elles sont enfoncées
+                  {
+                    if (VKCode == 'Z')
+                    {
+                      OutputDebugStringA("Z\n");
+                    }
+                    else if (VKCode == 'S')
+                    {
+                      OutputDebugStringA("S\n");
+                    }
+                    else if (VKCode == 'A')
+                    {
+                      Win32ProcessKeyboardMessage(&KeyboardController->LeftShoulder, IsDown);
+                    }
+                    else if (VKCode == 'E')
+                    {
+                      Win32ProcessKeyboardMessage(&KeyboardController->RightShoulder, IsDown);
+                    }
+                    else if (VKCode == VK_UP)
+                    {
+                      Win32ProcessKeyboardMessage(&KeyboardController->Up, IsDown);
+                    }
+                    else if (VKCode == VK_DOWN)
+                    {
+                      Win32ProcessKeyboardMessage(&KeyboardController->Down, IsDown);
+                    }
+                    else if (VKCode == VK_LEFT)
+                    {
+                      Win32ProcessKeyboardMessage(&KeyboardController->Left, IsDown);
+                    }
+                    else if (VKCode == VK_RIGHT)
+                    {
+                      Win32ProcessKeyboardMessage(&KeyboardController->Right, IsDown);
+                    }
+                    else if (VKCode == VK_ESCAPE)
+                    {
+                      GlobalRunning = false;
+                    }
+                    else if (VKCode == VK_SPACE)
+                    {
+                      OutputDebugStringA("SPACE\n");
+                    }
+                  }
+                  // Comme on capture les touches il faut gérer nous même le Alt-F4 pour quitter
+                  // Normalement c'est DefWindowProc (en default) qui fait le boulot
+                  bool32 AltKeyWasDown = (Message.lParam & (1 << 29));
+                  if ((VKCode == VK_F4) && AltKeyWasDown)
+                  {
+                    GlobalRunning = false;
+                  }
+                } break;
+              default: // On dispatche les autres boutons au callback pour Windows
+                {
+                  // On demande à Windows de traiter le message
+                  TranslateMessage(&Message);
+                  // Envoie le message au main WindowCallback, que l'on a défini et déclaré au dessus
+                  DispatchMessage(&Message);
+                } break;
+            }
           }
 
           // Gestion des entrées, pour le moment on gère ça à chaque image
