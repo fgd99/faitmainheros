@@ -103,14 +103,12 @@ GameUpdateAndRender(game_memory *Memory,
   }
   else
   {
-    if (Input0->Up.EndedDown) {
-      GameState->BlueOffset += 10;
-    }
+    if (Input0->Up.EndedDown) GameState->BlueOffset += 10;
   }
 
-  if (Input0->Down.EndedDown) {
-    GameState->GreenOffset += 10;
-  }
+  if (Input0->Down.EndedDown) GameState->GreenOffset += 10;
+  if (Input0->Right.EndedDown) GameState->ToneHz += 10;
+  if (Input0->Left.EndedDown) GameState->ToneHz -= 10;
 
   GameOutputSound(SoundBuffer, GameState->ToneHz);
   RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);

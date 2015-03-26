@@ -488,7 +488,7 @@ Win32ProcessKeyboardMessage(game_button_state *NewState,
  * Traitement des messages Windows, clavier inclus
  **/
 internal void
-Win32MessageLoop(game_controller_input *KeyboardController)
+Win32ProcessPendingMessages(game_controller_input *KeyboardController)
 {
   MSG Message;
   // On utilise PeekMessage au lieu de GetMessage qui est bloquant
@@ -695,7 +695,7 @@ WinMain(HINSTANCE Instance,
           game_controller_input *KeyboardController = &NewInput->Controllers[0];
           game_controller_input ZeroController = {};
           *KeyboardController = ZeroController;
-          Win32MessageLoop(KeyboardController);
+          Win32ProcessPendingMessages(KeyboardController);
 
           // Gestion des entrées, pour le moment on gère ça à chaque image
           // il faudra peut-être le faire plus fréquemment
