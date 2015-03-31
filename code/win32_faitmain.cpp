@@ -480,9 +480,24 @@ internal void
 Win32ProcessKeyboardMessage(game_button_state *NewState,
                             bool32 IsDown)
 {
+  Assert(NewState->EndedDown != IsDown);
   NewState->EndedDown = IsDown;
   ++NewState->HalfTransitionCount;
 }
+
+/**
+ * Gestion de la position du stick de la manette avec prise en compte de la deadzone
+ **/
+internal real32
+Win32ProcessXInputStickValue(SHORT Value, SHORT DeadZoneThreshold)
+{
+  real32 Result = 0;
+  if (Value < -DeadZoneThreshold)
+    Result = (real32)Value / 32768.0f;
+  else if (Value > DeadZoneThreshold)
+    Result = (real32)Value / 32767.0f;
+  return(Result);
+}              
 
 /**
  * Traitement des messages Windows, clavier inclus
@@ -692,10 +707,19 @@ WinMain(HINSTANCE Instance,
         // boucle infinie pour traiter tous les messages et tout passer au moteur de jeu
         while (GlobalRunning)
         {
-          game_controller_input *KeyboardController = &NewInput->Controllers[0];
+          game_controller_input *OldKeyboardController = &OldInput->Controllers[0];
+          game_controller_input *NewKeyboardController = &NewInput->Controllers[0];
           game_controller_input ZeroController = {};
-          *KeyboardController = ZeroController;
-          Win32ProcessPendingMessages(KeyboardController);
+          *NewKeyboardController = ZeroController;
+          // On retient l'état précédent des boutons pour gérer les boutons appuyés longtemps
+          for (int ButtonIndex = 0;
+               ButtonIndex < ArrayCount(OldKeyboardController->Buttons);
+               ++ButtonIndex)
+          {
+            NewKeyboardController->Buttons[ButtonIndex].EndedDown =
+              OldKeyboardController->Buttons[ButtonIndex].EndedDown;
+          }
+          Win32ProcessPendingMessages(NewKeyboardController);
 
           // Gestion des entrées, pour le moment on gère ça à chaque image
           // il faudra peut-être le faire plus fréquemment
@@ -752,14 +776,11 @@ WinMain(HINSTANCE Instance,
               NewController->IsAnalog = true;
               NewController->StartX = OldController->EndX;
               NewController->StartY = OldController->EndY;
-              NewController->MinX
-                = NewController->MaxX
-                = NewController->EndX
-                = (real32)Pad->sThumbLX / 32768.0f; // On normalise pour avoir une valeur entre -1 et 1
-              NewController->MinY
-                = NewController->MaxY
-                = NewController->EndY
-                = (real32)Pad->sThumbLY / 32768.0f; // Idem on normalise
+
+              real32 X = Win32ProcessXInputStickValue(Pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+              real32 Y = Win32ProcessXInputStickValue(Pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+              NewController->MinX = NewController->MaxX = NewController->EndX = X; 
+              NewController->MinY = NewController->MaxY = NewController->EndY = Y;
 
               // Test d'utilisation du DPAD de la manette
               #define PITCH 4
