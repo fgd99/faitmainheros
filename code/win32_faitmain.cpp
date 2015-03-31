@@ -700,7 +700,7 @@ WinMain(HINSTANCE Instance,
           // Gestion des entrées, pour le moment on gère ça à chaque image
           // il faudra peut-être le faire plus fréquemment
           // surtout si le nombre d'images par seconde chute
-          int MaxControllerCount = XUSER_MAX_COUNT;
+          int MaxControllerCount = 1 + XUSER_MAX_COUNT; // On va gérer le clavier comme étant le controller 0
           if (MaxControllerCount > ArrayCount(NewInput->Controllers))
           {
             MaxControllerCount = ArrayCount(NewInput->Controllers);
@@ -709,8 +709,9 @@ WinMain(HINSTANCE Instance,
                ControllerIndex < MaxControllerCount;
                ++ControllerIndex)
           {
-            game_controller_input *OldController = &OldInput->Controllers[ControllerIndex];
-            game_controller_input *NewController = &NewInput->Controllers[ControllerIndex];
+            int OurControllerIndex = ControllerIndex + 1; // On réserve l'emplacement 0 pour le clavier
+            game_controller_input *OldController = &OldInput->Controllers[OurControllerIndex];
+            game_controller_input *NewController = &NewInput->Controllers[OurControllerIndex];
 
             XINPUT_STATE ControllerState;
             if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
