@@ -764,6 +764,25 @@ WinMain(HINSTANCE Instance,
               NewController->StickAverageY = Win32ProcessXInputStickValue(
                 Pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
 
+              // Si on veut considérer le stick comme un bouton
+              real32 Threshold = 0.5f;
+              WORD VirtualLeft = NewController->StickAverageX < -Threshold ? 1 : 0;
+              WORD VirtualRight = NewController->StickAverageX > Threshold ? 1 : 0;
+              WORD VirtualUp = NewController->StickAverageY < -Threshold ? 1 : 0;
+              WORD VirtualDown = NewController->StickAverageY > Threshold ? 1 : 0;
+              Win32ProcessXInputDigitalButton(
+                VirtualLeft, &OldController->MoveLeft, 1,
+                &NewController->MoveLeft);
+              Win32ProcessXInputDigitalButton(
+                VirtualRight, &OldController->MoveRight, 1,
+                &NewController->MoveRight);
+              Win32ProcessXInputDigitalButton(
+                VirtualUp, &OldController->MoveUp, 1,
+                &NewController->MoveUp);
+              Win32ProcessXInputDigitalButton(
+                VirtualDown, &OldController->MoveDown, 1,
+                &NewController->MoveDown);
+
               // Boutons
               Win32ProcessXInputDigitalButton(
                 Pad->wButtons, &OldController->A,
