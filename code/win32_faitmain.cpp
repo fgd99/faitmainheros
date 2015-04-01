@@ -751,18 +751,23 @@ WinMain(HINSTANCE Instance,
               // Le controller est branché
               XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
-              // DPAD
-              bool32 Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
-              bool32 Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-              bool32 Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-              bool32 Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
-
               // Stick
               NewController->IsAnalog = true;
               NewController->StickAverageX = Win32ProcessXInputStickValue(
                 Pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
               NewController->StickAverageY = Win32ProcessXInputStickValue(
                 Pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+
+              // DPAD, que l'on peut traiter comme le stick
+              bool32 Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
+              bool32 Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+              bool32 Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+              bool32 Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+
+              if (Up) NewController->StickAverageY = 1.0f;
+              if (Down) NewController->StickAverageY = -1.0f;
+              if (Left) NewController->StickAverageX = -1.0f;
+              if (Right) NewController->StickAverageX = 1.0f;
 
               // Si on veut considérer le stick comme un bouton
               real32 Threshold = 0.5f;
