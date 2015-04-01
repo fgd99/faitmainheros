@@ -94,23 +94,25 @@ GameUpdateAndRender(game_memory *Memory,
     Memory->IsInitialized = true;
   }
 
-  for (int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
+  for (int ControllerIndex = 0;
+       ControllerIndex < ArrayCount(Input->Controllers);
+       ++ControllerIndex)
   {
     game_controller_input *Controller = &Input->Controllers[ControllerIndex];
     // Gestion des entrées
     if (Controller->IsAnalog)
     {
-      GameState->BlueOffset += (int)(4.0f*Controller->EndX);
-      GameState->ToneHz = 256 + (int)(128.0f * Controller->EndY);
+      GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
+      GameState->ToneHz = 256 + (int)(128.0f * Controller->StickAverageY);
     }
     else
     {
-      if (Controller->Up.EndedDown) GameState->BlueOffset += 10;
+      if (Controller->MoveUp.EndedDown) GameState->BlueOffset += 10;
     }
 
-    if (Controller->Down.EndedDown) GameState->GreenOffset += 10;
-    if (Controller->Right.EndedDown) GameState->ToneHz += 10;
-    if (Controller->Left.EndedDown) GameState->ToneHz -= 10;
+    if (Controller->MoveDown.EndedDown) GameState->GreenOffset += 10;
+    if (Controller->MoveRight.EndedDown) GameState->ToneHz += 10;
+    if (Controller->MoveLeft.EndedDown) GameState->ToneHz -= 10;
   }
 
   GameOutputSound(SoundBuffer, GameState->ToneHz);

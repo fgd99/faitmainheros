@@ -532,11 +532,19 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
           {
             if (VKCode == 'Z')
             {
-              OutputDebugStringA("Z\n");
+              Win32ProcessKeyboardMessage(&KeyboardController->MoveUp, IsDown);
             }
             else if (VKCode == 'S')
             {
-              OutputDebugStringA("S\n");
+              Win32ProcessKeyboardMessage(&KeyboardController->MoveDown, IsDown);
+            }
+            else if (VKCode == 'Q')
+            {
+              Win32ProcessKeyboardMessage(&KeyboardController->MoveLeft, IsDown);
+            }
+            else if (VKCode == 'D')
+            {
+              Win32ProcessKeyboardMessage(&KeyboardController->MoveRight, IsDown);
             }
             else if (VKCode == 'A')
             {
@@ -548,19 +556,19 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
             }
             else if (VKCode == VK_UP)
             {
-              Win32ProcessKeyboardMessage(&KeyboardController->Up, IsDown);
+              Win32ProcessKeyboardMessage(&KeyboardController->ActionUp, IsDown);
             }
             else if (VKCode == VK_DOWN)
             {
-              Win32ProcessKeyboardMessage(&KeyboardController->Down, IsDown);
+              Win32ProcessKeyboardMessage(&KeyboardController->ActionDown, IsDown);
             }
             else if (VKCode == VK_LEFT)
             {
-              Win32ProcessKeyboardMessage(&KeyboardController->Left, IsDown);
+              Win32ProcessKeyboardMessage(&KeyboardController->ActionLeft, IsDown);
             }
             else if (VKCode == VK_RIGHT)
             {
-              Win32ProcessKeyboardMessage(&KeyboardController->Right, IsDown);
+              Win32ProcessKeyboardMessage(&KeyboardController->ActionRight, IsDown);
             }
             else if (VKCode == VK_ESCAPE)
             {
@@ -749,6 +757,13 @@ WinMain(HINSTANCE Instance,
               bool32 Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
               bool32 Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
 
+              // Stick
+              NewController->IsAnalog = true;
+              NewController->StickAverageX = Win32ProcessXInputStickValue(
+                Pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+              NewController->StickAverageY = Win32ProcessXInputStickValue(
+                Pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+
               // Boutons
               Win32ProcessXInputDigitalButton(
                 Pad->wButtons, &OldController->A,
@@ -768,32 +783,12 @@ WinMain(HINSTANCE Instance,
               Win32ProcessXInputDigitalButton(
                 Pad->wButtons, &OldController->RightShoulder,
                 XINPUT_GAMEPAD_RIGHT_SHOULDER, &NewController->RightShoulder);
-
-              // bool32 Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
-              // bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-
-              // Stick
-              NewController->IsAnalog = true;
-              NewController->StartX = OldController->EndX;
-              NewController->StartY = OldController->EndY;
-
-              real32 X = Win32ProcessXInputStickValue(Pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-              real32 Y = Win32ProcessXInputStickValue(Pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
-              NewController->MinX = NewController->MaxX = NewController->EndX = X; 
-              NewController->MinY = NewController->MaxY = NewController->EndY = Y;
-
-              // Test d'utilisation du DPAD de la manette
-              #define PITCH 4
-              /*if (Up) YOffset += PITCH;
-              if (Down) YOffset -= PITCH;
-              if (Right) XOffset += PITCH;
-              if (Left) XOffset -= PITCH;*/
-
-			        // Test d'utilisation du stick de la manette
-              // Il faudra prendre en compte la DEAD ZONE de la manette pour plus de précision
-              // Avec XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE et ...RIGHT...
-			        //XOffset += StickX / 4096;
-			        //YOffset += StickY / 4096;
+              Win32ProcessXInputDigitalButton(
+                Pad->wButtons, &OldController->Back,
+                XINPUT_GAMEPAD_BACK, &NewController->Back);
+              Win32ProcessXInputDigitalButton(
+                Pad->wButtons, &OldController->Start,
+                XINPUT_GAMEPAD_START, &NewController->Start);
 
               // Vibration de la manette
               XINPUT_VIBRATION Vibration;
@@ -808,18 +803,6 @@ WinMain(HINSTANCE Instance,
                 Vibration.wRightMotorSpeed = 0;
               }
               XInputSetState(0, &Vibration);
-
-              // Pour jouer avec le son lorsque l'on appuie sur un bouton
-              /*if (AButton)
-              {
-                SoundOutput.ToneHz = 512;
-                // Pour le moment on copie/colle mais il faudra en faire une fonction
-                SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
-              }*/
-
-              // Pour jouer avec la fréquence du son avec le stick
-              //SoundOutput.ToneHz = 512 * (int)(256.0f * ((real32)StickY / 30000.0f));
-              //SoundOutput.WavePeriod = SoundOutput.SamplesPerSecond / SoundOutput.ToneHz;
             }
             else
             {
