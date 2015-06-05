@@ -74,7 +74,12 @@ GameUpdateAndRender(game_memory *Memory,
                     game_offscreen_buffer *Buffer,
                     game_sound_output_buffer *SoundBuffer)
 {
+  // On vérifie que l'on a alloué assez de mémoire pour le jeu
   Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+  // On vérifie que la structure des boutons des controllers est bien définie
+  Assert(
+    (&Input->Controllers[0].Start - &Input->Controllers[0].Buttons[0])
+    == ArrayCount(Input->Controllers[0].Buttons) - 1);
 
   game_state *GameState = (game_state*)Memory->PermanentStorage;
   if (!Memory->IsInitialized)
