@@ -771,8 +771,9 @@ WinMain(HINSTANCE Instance,
               if (Left) NewController->StickAverageX = -1.0f;
               if (Right) NewController->StickAverageX = 1.0f;
 
-              // Si un bouton est pressé au lieu du stick on dit qu'on n'est pas analogue
+              // Si un bouton est pressé au lieu du stick on dit qu'on n'est pas analogue, sinon si le stick est utilisé on prévient
               if(Up || Down || Left || Right) NewController->IsAnalog = false;
+              if(NewController->StickAverageX != 0.0f || NewController->StickAverageY != 0.0f) NewController->IsAnalog = true;
 
               // Si on veut considérer le stick comme un bouton
               real32 Threshold = 0.5f;
