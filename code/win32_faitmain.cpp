@@ -572,11 +572,11 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
             }
             else if (VKCode == VK_ESCAPE)
             {
-              GlobalRunning = false;
+              Win32ProcessKeyboardMessage(&KeyboardController->Start, IsDown);
             }
             else if (VKCode == VK_SPACE)
             {
-              OutputDebugStringA("SPACE\n");
+              Win32ProcessKeyboardMessage(&KeyboardController->Back, IsDown);
             }
           }
           // Comme on capture les touches il faut gérer nous même le Alt-F4 pour quitter
