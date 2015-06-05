@@ -107,10 +107,16 @@ GameUpdateAndRender(game_memory *Memory,
     }
     else
     {
-      if (Controller->MoveUp.EndedDown) GameState->BlueOffset += 10;
-      if (Controller->MoveDown.EndedDown) GameState->GreenOffset += 10;
-      if (Controller->MoveRight.EndedDown) GameState->ToneHz += 10;
-      if (Controller->MoveLeft.EndedDown) GameState->ToneHz -= 10;
+      if (Controller->MoveUp.EndedDown) GameState->GreenOffset += 10;
+      if (Controller->MoveDown.EndedDown) GameState->GreenOffset -= 10;
+      if (Controller->MoveRight.EndedDown) {
+        GameState->ToneHz += 10;
+        GameState->BlueOffset += 10;
+      }
+      if (Controller->MoveLeft.EndedDown) {
+        GameState->ToneHz -= 10;
+        GameState->BlueOffset -= 10;
+      }
     }
   }
 
