@@ -98,7 +98,7 @@ GameUpdateAndRender(game_memory *Memory,
        ControllerIndex < ArrayCount(Input->Controllers);
        ++ControllerIndex)
   {
-    game_controller_input *Controller = &Input->Controllers[ControllerIndex];
+    game_controller_input *Controller = GetController(Input, ControllerIndex);
     // Gestion des entrées
     if (Controller->IsAnalog)
     {

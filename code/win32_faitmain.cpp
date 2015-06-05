@@ -715,10 +715,11 @@ WinMain(HINSTANCE Instance,
         // boucle infinie pour traiter tous les messages et tout passer au moteur de jeu
         while (GlobalRunning)
         {
-          game_controller_input *OldKeyboardController = &OldInput->Controllers[0];
-          game_controller_input *NewKeyboardController = &NewInput->Controllers[0];
+          game_controller_input *OldKeyboardController = GetController(OldInput, 0);
+          game_controller_input *NewKeyboardController = GetController(NewInput, 0);
           game_controller_input ZeroController = {};
           *NewKeyboardController = ZeroController;
+          NewKeyboardController->IsConnected = true;
           // On retient l'état précédent des boutons pour gérer les boutons appuyés longtemps
           for (int ButtonIndex = 0;
                ButtonIndex < ArrayCount(OldKeyboardController->Buttons);
@@ -732,23 +733,24 @@ WinMain(HINSTANCE Instance,
           // Gestion des entrées, pour le moment on gère ça à chaque image
           // il faudra peut-être le faire plus fréquemment
           // surtout si le nombre d'images par seconde chute
-          int MaxControllerCount = 1 + XUSER_MAX_COUNT; // On va gérer le clavier comme étant le controller 0
-          if (MaxControllerCount > ArrayCount(NewInput->Controllers))
+          int MaxControllerCount = XUSER_MAX_COUNT; // On va gérer le clavier comme étant le controller 0
+          if (MaxControllerCount > (ArrayCount(NewInput->Controllers) - 1))
           {
-            MaxControllerCount = ArrayCount(NewInput->Controllers);
+            MaxControllerCount = ArrayCount(NewInput->Controllers) - 1;
           }
           for (int ControllerIndex = 0;
                ControllerIndex < MaxControllerCount;
                ++ControllerIndex)
           {
             int OurControllerIndex = ControllerIndex + 1; // On réserve l'emplacement 0 pour le clavier
-            game_controller_input *OldController = &OldInput->Controllers[OurControllerIndex];
-            game_controller_input *NewController = &NewInput->Controllers[OurControllerIndex];
+            game_controller_input *OldController = GetController(OldInput, OurControllerIndex);
+            game_controller_input *NewController = GetController(NewInput, OurControllerIndex);
 
             XINPUT_STATE ControllerState;
             if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
             {
               // Le controller est branché
+              NewController->IsConnected = true;
               XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
 
               // Stick
@@ -831,6 +833,7 @@ WinMain(HINSTANCE Instance,
             else
             {
               // Le controlleur n'est pas branché
+              NewController->IsConnected = false;
             }
           }
 
