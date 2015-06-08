@@ -106,7 +106,7 @@ struct game_input
 {
   game_controller_input Controllers[5];
 };
-inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
+inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
 {
   Assert(ControllerIndex < ArrayCount(Input->Controllers));
   game_controller_input *Result = &Input->Controllers[ControllerIndex];
