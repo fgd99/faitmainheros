@@ -938,9 +938,14 @@ WinMain(HINSTANCE Instance,
               DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
               if (SleepMS > 0) Sleep(SleepMS);
             }
+            // On vérifie que l'on n'a pas dormi trop longtemps...
+            /*real32 TestSecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
+                                                                       Win32GetWallClock());
+            Assert(TestSecondsElapsedForFrame < TargetSecondsPerFrame);*/
             while(SecondsElapsedForFrame < TargetSecondsPerFrame)
             {
-              SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+              SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter,
+                                                              Win32GetWallClock());
             }
           }
           else
