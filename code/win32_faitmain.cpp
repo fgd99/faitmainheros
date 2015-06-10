@@ -630,7 +630,10 @@ WinMain(HINSTANCE Instance,
   QueryPerformanceFrequency(&PerfCountFrequencyResult);
   GlobalPerfCountFrequency = PerfCountFrequencyResult.QuadPart;
 
-  uint64 LastCycleCount = __rdtsc();
+  // On définit la granularité du scheduler de Windows à 1ms pour permettre le calcul du timing
+  // Pour que la fonction Sleep() soit plus performante (plus granulaire)
+  UINT DesiredSchedulerMS = 1;
+  bool32 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
 
   // On essaye de charger les fonctions de la dll qui gère les manettes
   Win32LoadXInput();
@@ -923,7 +926,7 @@ WinMain(HINSTANCE Instance,
             Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
           }
 
-          // Timing
+          // Timing entre les images pour assurer un FPS constant
           LARGE_INTEGER WorkCounter = Win32GetWallClock();
           real32 WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
           
@@ -932,8 +935,11 @@ WinMain(HINSTANCE Instance,
           {
             while(SecondsElapsedForFrame < TargetSecondsPerFrame)
             {
-              DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
-              Sleep(SleepMS);
+              if (SleepIsGranular)
+              {
+                DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
+                Sleep(SleepMS);
+              }
               SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
             }
           }

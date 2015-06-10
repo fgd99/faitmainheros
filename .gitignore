@@ -2,7 +2,9 @@
 *.suo
 build/
 misc/Debug/
+misc/Release/
 misc/faitmain/Debug/
+misc/faitmain/Release/
 misc/ipch/
 misc/VS2013_faitmain/Debug/
 *.zedstate
