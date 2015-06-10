@@ -36,9 +36,10 @@ typedef double real64;
 #include "win32_faitmain.h"
 
 // variables globales pour le moment, on gèrera autrement plus tard
-global_variable bool32 GlobalRunning;
+global_variable bool32 GlobalRunning = true;
 global_variable win32_offscreen_buffer GlobalBackBuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
+global_variable int64 GlobalPerfCountFrequency;
 
 // Permet de renvoyer les dimensions actuelles de la fenêtre
 internal win32_window_dimension
@@ -598,6 +599,21 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController)
   }
 }
 
+inline LARGE_INTEGER
+Win32GetWallClock(void)
+{
+  LARGE_INTEGER Result;
+  QueryPerformanceCounter(&Result);
+  return(Result);
+}
+
+inline real32
+Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+{
+  real32 Result = ((real32)(End.QuadPart - Start.QuadPart) / (real32)GlobalPerfCountFrequency);
+  return(Result);
+}
+
 /**
  * Main du programme qui va initialiser la fenêtre et gérer la boucle principale :
  * attente des messages, gestion de la manette et du clavier, dessin...
@@ -612,7 +628,7 @@ WinMain(HINSTANCE Instance,
   // et nous permettre d'avoir le nombre d'images par seconde.
   LARGE_INTEGER PerfCountFrequencyResult;
   QueryPerformanceFrequency(&PerfCountFrequencyResult);
-  int64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+  GlobalPerfCountFrequency = PerfCountFrequencyResult.QuadPart;
 
   uint64 LastCycleCount = __rdtsc();
 
@@ -632,6 +648,12 @@ WinMain(HINSTANCE Instance,
   WindowClass.hInstance = Instance;
   // WindowClass.hIcon;
   WindowClass.lpszClassName = "FaitmainHerosWindowClass"; // nom pour retrouver la fenêtre
+
+  // Calcul de la durée de calcul d'une image en fonction du taux de rafraîchissement de l'écran
+  // TODO: Demander à Windows la vraie valeur
+  int MonitorRefreshHz = 60;
+  int GameUpdateHz = MonitorRefreshHz / 2;
+  real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
 
   // Ouverture de la fenêtre
   if (RegisterClassA(&WindowClass))
@@ -711,7 +733,12 @@ WinMain(HINSTANCE Instance,
         game_input *NewInput = &Input[0];
         game_input *OldInput = &Input[1];
 
-        GlobalRunning = true;
+        // Gestion du timing
+        LARGE_INTEGER LastCounter = Win32GetWallClock();
+
+        // rdtsc ne sert que pour le profiling, ne peut pas servir au timing
+        uint64 LastCycleCount = __rdtsc();
+
         // boucle infinie pour traiter tous les messages et tout passer au moteur de jeu
         while (GlobalRunning)
         {
@@ -896,6 +923,25 @@ WinMain(HINSTANCE Instance,
             Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
           }
 
+          // Timing
+          LARGE_INTEGER WorkCounter = Win32GetWallClock();
+          real32 WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
+          
+          real32 SecondsElapsedForFrame = WorkSecondsElapsed;
+          if (SecondsElapsedForFrame < TargetSecondsPerFrame)
+          {
+            while(SecondsElapsedForFrame < TargetSecondsPerFrame)
+            {
+              DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
+              Sleep(SleepMS);
+              SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+            }
+          }
+          else
+          {
+            // Problème de timing, qu'il faudra logguer
+          }
+
           // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
           // On en fera une fonction propre
           win32_window_dimension Dimension = Win32GetWindowDimension(Window);
@@ -903,29 +949,29 @@ WinMain(HINSTANCE Instance,
                                      Dimension.Width, Dimension.Height);
           ReleaseDC(Window, DeviceContext);
 
-          // Mesure du nombre d'images par seconde
-          LARGE_INTEGER EndCounter;
-          QueryPerformanceCounter(&EndCounter);
-          uint64 EndCycleCount = __rdtsc();
-          uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
-          int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
-
+  #if 0
           real32 MSPerFrame = (1000.0f*(real32)CounterElapsed) / (real32)PerfCountFrequency;
           real32 FPS = (real32)PerfCountFrequency / (real32)CounterElapsed;
           real32 MCPF = (real32)CyclesElapsed / 1000000.0f;
-  #if 0
+  
           char Buffer[256];
           sprintf(Buffer, "%0.2f ms/f, %0.2f f/s, %0.2f Mc/f\n", MSPerFrame, FPS, MCPF);
           OutputDebugStringA(Buffer);
   #endif
-          // Remplacement du compteur d'images
-          LastCounter = EndCounter;
-          LastCycleCount = EndCycleCount;
-
+  
           // Gestion des entrées
           game_input *Temp = NewInput;
           NewInput = OldInput;
           OldInput = Temp;
+
+          // Remplacement du compteur d'images pour le timing
+          LARGE_INTEGER EndCounter = Win32GetWallClock();
+          LastCounter = EndCounter;
+          
+          // Mesure du nombre d'images par seconde
+          uint64 EndCycleCount = __rdtsc();
+          uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
+          LastCycleCount = EndCycleCount;
         }
       }
       else
