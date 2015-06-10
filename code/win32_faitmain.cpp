@@ -954,16 +954,6 @@ WinMain(HINSTANCE Instance,
           Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
                                      Dimension.Width, Dimension.Height);
           ReleaseDC(Window, DeviceContext);
-
-  #if 0
-          real32 MSPerFrame = (1000.0f*(real32)CounterElapsed) / (real32)PerfCountFrequency;
-          real32 FPS = (real32)PerfCountFrequency / (real32)CounterElapsed;
-          real32 MCPF = (real32)CyclesElapsed / 1000000.0f;
-  
-          char Buffer[256];
-          sprintf(Buffer, "%0.2f ms/f, %0.2f f/s, %0.2f Mc/f\n", MSPerFrame, FPS, MCPF);
-          OutputDebugStringA(Buffer);
-  #endif
   
           // Gestion des entrées
           game_input *Temp = NewInput;
@@ -972,12 +962,28 @@ WinMain(HINSTANCE Instance,
 
           // Remplacement du compteur d'images pour le timing
           LARGE_INTEGER EndCounter = Win32GetWallClock();
+          real32 MSPerFrame = 1000.0f * Win32GetSecondsElapsed(LastCounter, EndCounter);
           LastCounter = EndCounter;
           
           // Mesure du nombre d'images par seconde
           uint64 EndCycleCount = __rdtsc();
           uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
           LastCycleCount = EndCycleCount;
+
+  #if 1
+          real32 FPS = 0.0f; //(real32)PerfCountFrequency / (real32)CounterElapsed;
+          real32 MCPF = (real32)CyclesElapsed / 1000000.0f;
+  
+          char FPSBuffer[256];
+          _snprintf_s(
+            FPSBuffer,
+            sizeof(FPSBuffer),
+            "%0.2f ms/f, %0.2f f/s, %0.2f Mc/f\n",
+            MSPerFrame,
+            FPS,
+            MCPF);
+          OutputDebugStringA(FPSBuffer);
+  #endif
         }
       }
       else
