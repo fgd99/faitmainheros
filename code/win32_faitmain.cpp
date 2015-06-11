@@ -614,6 +614,15 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
   return(Result);
 }
 
+internal void
+Win32DebugSyncDisplay(win32_offscreen_buffer *GlobalBackBuffer,
+                      DWORD LastPlayCursor,
+                      win32_sound_output *SoundOutput,
+                      real32 TargetSecondsPerFrame)
+{
+
+}
+
 /**
  * Main du programme qui va initialiser la fenêtre et gérer la boucle principale :
  * attente des messages, gestion de la manette et du clavier, dessin...
@@ -738,6 +747,9 @@ WinMain(HINSTANCE Instance,
 
         // Gestion du timing
         LARGE_INTEGER LastCounter = Win32GetWallClock();
+
+        // Pour le debug de la syncro audio
+        DWORD DebugLastPlayCursor = 0;
 
         // rdtsc ne sert que pour le profiling, ne peut pas servir au timing
         uint64 LastCycleCount = __rdtsc();
@@ -956,10 +968,23 @@ WinMain(HINSTANCE Instance,
           // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
           // On en fera une fonction propre
           win32_window_dimension Dimension = Win32GetWindowDimension(Window);
+#if FAITMAIN_INTERNAL
+          Win32DebugSyncDisplay(&GlobalBackBuffer, DebugLastPlayCursor, &SoundOutput, TargetSecondsPerFrame);
+#endif
           Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
                                      Dimension.Width, Dimension.Height);
           ReleaseDC(Window, DeviceContext);
-  
+
+          // On regarde la syncro audio en mode debug
+#if FAITMAIN_INTERNAL
+          {
+            DWORD PlayCursor;
+            DWORD WriteCursor;
+            GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
+            DebugLastPlayCursor = PlayCursor;
+          }
+#endif
+
           // Gestion des entrées
           game_input *Temp = NewInput;
           NewInput = OldInput;
