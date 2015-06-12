@@ -615,12 +615,39 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
 }
 
 internal void
+Win32DebugDrawVertical(win32_offscreen_buffer *GlobalBackBuffer,
+                       int X, int Top, int Bottom, uint32 Color)
+{
+  uint8 *Pixel = ((uint8*)GlobalBackBuffer->Memory
+                  + X * GlobalBackBuffer->BytesPerPixel
+                  + Top * GlobalBackBuffer->Pitch);
+  for(int Y = Top; Y < Bottom; ++Y)
+  {
+      *(uint32*)Pixel = Color;
+      Pixel += GlobalBackBuffer->Pitch;
+  }
+}
+
+internal void
 Win32DebugSyncDisplay(win32_offscreen_buffer *GlobalBackBuffer,
-                      DWORD LastPlayCursor,
+                      int LastPlayCursorCount,
+                      DWORD *LastPlayCursor,
                       win32_sound_output *SoundOutput,
                       real32 TargetSecondsPerFrame)
 {
-
+  int PadX = 16;
+  int PadY = 16;
+  int Top = PadY;
+  int Bottom = GlobalBackBuffer->Height - PadY;
+  real32 C = (real32)(GlobalBackBuffer->Width - 2*PadX) / (real32)SoundOutput->SecondaryBufferSize;
+  for(int PlayCursorIndex = 0; PlayCursorIndex < LastPlayCursorCount; ++PlayCursorIndex)
+  {
+    DWORD ThisPlayCursor = LastPlayCursor[PlayCursorIndex];
+    Assert(ThisPlayCursor < SoundOutput->SecondaryBufferSize);
+    real32 XReal32 = C * (real32)ThisPlayCursor;
+    int X = PadX + (int)XReal32;
+    Win32DebugDrawVertical(GlobalBackBuffer, X, Top, Bottom, 0xFFFFFFFF);
+  }
 }
 
 /**
@@ -663,8 +690,8 @@ WinMain(HINSTANCE Instance,
 
   // Calcul de la durée de calcul d'une image en fonction du taux de rafraîchissement de l'écran
   // TODO: Demander à Windows la vraie valeur
-  int MonitorRefreshHz = 60;
-  int GameUpdateHz = MonitorRefreshHz / 2;
+#define MonitorRefreshHz 60
+#define GameUpdateHz MonitorRefreshHz / 2
   real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
 
   // Ouverture de la fenêtre
@@ -749,7 +776,8 @@ WinMain(HINSTANCE Instance,
         LARGE_INTEGER LastCounter = Win32GetWallClock();
 
         // Pour le debug de la syncro audio
-        DWORD DebugLastPlayCursor = 0;
+        int DebugLastPlayCursorIndex = 0;
+        DWORD DebugLastPlayCursor[GameUpdateHz / 2] = {0};
 
         // rdtsc ne sert que pour le profiling, ne peut pas servir au timing
         uint64 LastCycleCount = __rdtsc();
@@ -969,7 +997,12 @@ WinMain(HINSTANCE Instance,
           // On en fera une fonction propre
           win32_window_dimension Dimension = Win32GetWindowDimension(Window);
 #if FAITMAIN_INTERNAL
-          Win32DebugSyncDisplay(&GlobalBackBuffer, DebugLastPlayCursor, &SoundOutput, TargetSecondsPerFrame);
+          Win32DebugSyncDisplay(
+            &GlobalBackBuffer,
+            ArrayCount(DebugLastPlayCursor),
+            DebugLastPlayCursor,
+            &SoundOutput,
+            TargetSecondsPerFrame);
 #endif
           Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
                                      Dimension.Width, Dimension.Height);
@@ -981,7 +1014,12 @@ WinMain(HINSTANCE Instance,
             DWORD PlayCursor;
             DWORD WriteCursor;
             GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
-            DebugLastPlayCursor = PlayCursor;
+
+            DebugLastPlayCursor[DebugLastPlayCursorIndex++] = PlayCursor;
+            if(DebugLastPlayCursorIndex > ArrayCount(DebugLastPlayCursor))
+            {
+              DebugLastPlayCursorIndex = 0;
+            }
           }
 #endif
 
