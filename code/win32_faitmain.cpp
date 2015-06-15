@@ -993,6 +993,11 @@ WinMain(HINSTANCE Instance,
             // Problème de timing, qu'il faudra logguer
           }
 
+          // Remplacement du compteur d'images pour le timing
+          LARGE_INTEGER EndCounter = Win32GetWallClock();
+          real32 MSPerFrame = 1000.0f * Win32GetSecondsElapsed(LastCounter, EndCounter);
+          LastCounter = EndCounter;
+
           // On doit alors écrire dans la fenêtre à chaque fois que l'on veut rendre
           // On en fera une fonction propre
           win32_window_dimension Dimension = Win32GetWindowDimension(Window);
@@ -1028,11 +1033,6 @@ WinMain(HINSTANCE Instance,
           NewInput = OldInput;
           OldInput = Temp;
 
-          // Remplacement du compteur d'images pour le timing
-          LARGE_INTEGER EndCounter = Win32GetWallClock();
-          real32 MSPerFrame = 1000.0f * Win32GetSecondsElapsed(LastCounter, EndCounter);
-          LastCounter = EndCounter;
-          
           // Mesure du nombre d'images par seconde
           uint64 EndCycleCount = __rdtsc();
           uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
