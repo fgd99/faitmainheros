@@ -29,5 +29,11 @@ struct win32_sound_output
   real32 tSine;
 };
 
+struct win32_debug_time_marker
+{
+  DWORD PlayCursor;
+  DWORD WriteCursor;
+};
+
 #define WIN32_HANDMADE_H
 #endif

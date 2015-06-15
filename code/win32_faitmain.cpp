@@ -628,25 +628,34 @@ Win32DebugDrawVertical(win32_offscreen_buffer *GlobalBackBuffer,
   }
 }
 
+inline void
+Win32DrawSoundBuffer(win32_offscreen_buffer *BackBuffer,
+                     win32_sound_output *SoundOutput,
+                     real32 C, int PadX, int Top, int Bottom,
+                     DWORD Value, uint32 Color)
+{
+  real32 XReal32 = C * (real32)Value;
+  int X = PadX + (int)XReal32;
+  Win32DebugDrawVertical(BackBuffer, X, Top, Bottom, Color);
+}
+
 internal void
-Win32DebugSyncDisplay(win32_offscreen_buffer *GlobalBackBuffer,
-                      int LastPlayCursorCount,
-                      DWORD *LastPlayCursor,
+Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
+                      int MarkerCount, win32_debug_time_marker *Markers,
                       win32_sound_output *SoundOutput,
                       real32 TargetSecondsPerFrame)
 {
   int PadX = 16;
   int PadY = 16;
   int Top = PadY;
-  int Bottom = GlobalBackBuffer->Height - PadY;
-  real32 C = (real32)(GlobalBackBuffer->Width - 2*PadX) / (real32)SoundOutput->SecondaryBufferSize;
-  for(int PlayCursorIndex = 0; PlayCursorIndex < LastPlayCursorCount; ++PlayCursorIndex)
+  int Bottom = BackBuffer->Height - PadY;
+  real32 C = (real32)(BackBuffer->Width - 2*PadX) / (real32)SoundOutput->SecondaryBufferSize;
+  for(int MarkerIndex = 0; MarkerIndex < MarkerCount; ++MarkerIndex)
   {
-    DWORD ThisPlayCursor = LastPlayCursor[PlayCursorIndex];
-    Assert(ThisPlayCursor < SoundOutput->SecondaryBufferSize);
-    real32 XReal32 = C * (real32)ThisPlayCursor;
-    int X = PadX + (int)XReal32;
-    Win32DebugDrawVertical(GlobalBackBuffer, X, Top, Bottom, 0xFFFFFFFF);
+    win32_debug_time_marker *ThisMarker = &Markers[MarkerIndex];
+    Assert(ThisMarker->PlayCursor < SoundOutput->SecondaryBufferSize);
+    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->PlayCursor, 0xFFFFFFFF);
+    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->WriteCursor, 0xFFFF0000);
   }
 }
 
@@ -776,8 +785,8 @@ WinMain(HINSTANCE Instance,
         LARGE_INTEGER LastCounter = Win32GetWallClock();
 
         // Pour le debug de la syncro audio
-        int DebugLastPlayCursorIndex = 0;
-        DWORD DebugLastPlayCursor[GameUpdateHz / 2] = {0};
+        int DebugTimeMarkerIndex = 0;
+        win32_debug_time_marker DebugTimeMarkers[GameUpdateHz / 2] = {0};
 
         // rdtsc ne sert que pour le profiling, ne peut pas servir au timing
         uint64 LastCycleCount = __rdtsc();
@@ -1004,8 +1013,8 @@ WinMain(HINSTANCE Instance,
 #if FAITMAIN_INTERNAL
           Win32DebugSyncDisplay(
             &GlobalBackBuffer,
-            ArrayCount(DebugLastPlayCursor),
-            DebugLastPlayCursor,
+            ArrayCount(DebugTimeMarkers),
+            DebugTimeMarkers,
             &SoundOutput,
             TargetSecondsPerFrame);
 #endif
@@ -1016,15 +1025,12 @@ WinMain(HINSTANCE Instance,
           // On regarde la syncro audio en mode debug
 #if FAITMAIN_INTERNAL
           {
-            DWORD PlayCursor;
-            DWORD WriteCursor;
-            GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
-
-            DebugLastPlayCursor[DebugLastPlayCursorIndex++] = PlayCursor;
-            if(DebugLastPlayCursorIndex > ArrayCount(DebugLastPlayCursor))
+            win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex++];
+            if(DebugTimeMarkerIndex > ArrayCount(DebugTimeMarkers))
             {
-              DebugLastPlayCursorIndex = 0;
+              DebugTimeMarkerIndex = 0;
             }
+            GlobalSecondaryBuffer->GetCurrentPosition(&Marker->PlayCursor, &Marker->WriteCursor);
           }
 #endif
 
