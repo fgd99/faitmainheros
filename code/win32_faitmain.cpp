@@ -700,7 +700,8 @@ WinMain(HINSTANCE Instance,
   // Calcul de la durée de calcul d'une image en fonction du taux de rafraîchissement de l'écran
   // TODO: Demander à Windows la vraie valeur
 #define MonitorRefreshHz 60
-#define GameUpdateHz MonitorRefreshHz / 2
+#define GameUpdateHz (MonitorRefreshHz / 2)
+#define FramesOfAudioLatency 2
   real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
 
   // Ouverture de la fenêtre
@@ -733,7 +734,7 @@ WinMain(HINSTANCE Instance,
       SoundOutput.RunningSampleIndex = 0;
       SoundOutput.BytesPerSample = sizeof(uint16) * 2;
       SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;
-      SoundOutput.LatencySampleCount = SoundOutput.SamplesPerSecond / 15; // On aimerait 60 comme le nb img/s
+      SoundOutput.LatencySampleCount = FramesOfAudioLatency * (SoundOutput.SamplesPerSecond / GameUpdateHz); // On aimerait 60 comme le nb img/s, 2* pour prendre de l'avance
 
       Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
       // Premièr remplissage du buffer pour le son
@@ -787,6 +788,9 @@ WinMain(HINSTANCE Instance,
         // Pour le debug de la syncro audio
         int DebugTimeMarkerIndex = 0;
         win32_debug_time_marker DebugTimeMarkers[GameUpdateHz / 2] = {0};
+
+        DWORD LastPlayCursor = 0;
+        bool32 SoundIsValid = false;
 
         // rdtsc ne sert que pour le profiling, ne peut pas servir au timing
         uint64 LastCycleCount = __rdtsc();
@@ -923,19 +927,16 @@ WinMain(HINSTANCE Instance,
           // Test de rendu DirectSound
           // Forme d'un sample :  int16 int16   int16 int16   int16 int16 ...
           //                     (LEFT  RIGHT) (LEFT  RIGHT) (LEFT  RIGHT)...
-          DWORD PlayCursor;
-          DWORD WriteCursor;
-          DWORD BytesToWrite;
-          DWORD ByteToLock;
-          DWORD TargetCursor;
-          bool32 SoundIsValid = false;
-          if (SUCCEEDED(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor)))
+          DWORD BytesToWrite = 0;
+          DWORD ByteToLock = 0;
+          DWORD TargetCursor = 0;
+          if (SoundIsValid)
           {
             // On remplit le buffer secondaire en fonction d'où se trouve le curseur de lecture
             // ce qui mériterait une meilleure gestion de l'état de lecture (lower latency offset)
             ByteToLock = (SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample)
                           % SoundOutput.SecondaryBufferSize;
-            TargetCursor = (PlayCursor + (SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample))
+            TargetCursor = (LastPlayCursor + (SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample))
                             % SoundOutput.SecondaryBufferSize;
 
             if (ByteToLock > TargetCursor)
@@ -1020,7 +1021,21 @@ WinMain(HINSTANCE Instance,
 #endif
           Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext,
                                      Dimension.Width, Dimension.Height);
-          ReleaseDC(Window, DeviceContext);
+          
+          // PROBLEME avec ce RealeaseDC, à vérifier
+          // ReleaseDC(Window, DeviceContext);
+
+          DWORD PlayCursor;
+          DWORD WriteCursor;
+          if(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor))
+          {
+            LastPlayCursor = PlayCursor;
+            SoundIsValid = true;
+          }
+          else
+          {
+            SoundIsValid = false;
+          }
 
           // On regarde la syncro audio en mode debug
 #if FAITMAIN_INTERNAL
