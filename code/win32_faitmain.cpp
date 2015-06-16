@@ -701,7 +701,7 @@ WinMain(HINSTANCE Instance,
   // TODO: Demander à Windows la vraie valeur
 #define MonitorRefreshHz 60
 #define GameUpdateHz (MonitorRefreshHz / 2)
-#define FramesOfAudioLatency 2
+#define FramesOfAudioLatency 4
   real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
 
   // Ouverture de la fenêtre
