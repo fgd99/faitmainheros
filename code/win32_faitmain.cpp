@@ -948,7 +948,25 @@ WinMain(HINSTANCE Instance,
             {
               BytesToWrite = TargetCursor - ByteToLock;
             }
-            SoundIsValid = true;
+            
+#if 0
+            // Permet de tester la fréquence de rafraichissement de PlayCursor/WriteCursor
+            while(GlobalRunning)
+            {
+              DWORD PlayCursor;
+              DWORD WriteCursor;
+              GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
+
+              char TextBuffer[256];
+              _snprintf_s(
+                TextBuffer,
+                sizeof(TextBuffer),
+                "PC:%u WC:%u\n",
+                PlayCursor,
+                WriteCursor);
+              OutputDebugStringA(TextBuffer);
+            }
+#endif
           }
 
           // Grâce à PeekMessage on a tout le temps CPU que l'on veut et on peut calculer et rendre le jeu ici
@@ -973,6 +991,21 @@ WinMain(HINSTANCE Instance,
 
           if (SoundIsValid)
           {
+#if FAITMAIN_INTERNAL
+            DWORD PlayCursor;
+            DWORD WriteCursor;
+            GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
+
+            // Une sortie debug pour vérifier le son
+            char TextBuffer[256];
+            _snprintf_s(
+              TextBuffer,
+              sizeof(TextBuffer),
+              "LPC:%u BTL:%u TC:%u BTW:%u - PC:%u WC:%u\n",
+              LastPlayCursor, ByteToLock, TargetCursor,
+              BytesToWrite, PlayCursor, WriteCursor);
+            OutputDebugStringA(TextBuffer);
+#endif
             Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
           }
 
@@ -1027,10 +1060,13 @@ WinMain(HINSTANCE Instance,
 
           DWORD PlayCursor;
           DWORD WriteCursor;
-          if(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor))
+          if(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor) == DS_OK)
           {
             LastPlayCursor = PlayCursor;
-            SoundIsValid = true;
+            if (!SoundIsValid) {
+              SoundOutput.RunningSampleIndex = WriteCursor / SoundOutput.BytesPerSample;
+              SoundIsValid = true;
+            }
           }
           else
           {
