@@ -701,7 +701,6 @@ WinMain(HINSTANCE Instance,
   // TODO: Demander à Windows la vraie valeur
 #define MonitorRefreshHz 60
 #define GameUpdateHz (MonitorRefreshHz / 2)
-#define FramesOfAudioLatency 3
   real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
 
   // Ouverture de la fenêtre
@@ -734,7 +733,7 @@ WinMain(HINSTANCE Instance,
       SoundOutput.RunningSampleIndex = 0;
       SoundOutput.BytesPerSample = sizeof(uint16) * 2;
       SoundOutput.SecondaryBufferSize = SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample;
-      SoundOutput.LatencySampleCount = FramesOfAudioLatency * (SoundOutput.SamplesPerSecond / GameUpdateHz); // On aimerait 60 comme le nb img/s, 2* pour prendre de l'avance
+      SoundOutput.LatencySampleCount = 3 * (SoundOutput.SamplesPerSecond / GameUpdateHz); // On aimerait 60 comme le nb img/s, 2* pour prendre de l'avance
 
       Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
       // Premièr remplissage du buffer pour le son
@@ -996,14 +995,22 @@ WinMain(HINSTANCE Instance,
             DWORD WriteCursor;
             GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
 
+            // c'est un buffer circulaire, c'est plus compliqué pour mesurer l'écart
+            DWORD UnwrappedWriteCursor = WriteCursor;
+            if(UnwrappedWriteCursor < PlayCursor)
+            {
+              UnwrappedWriteCursor += SoundOutput.SecondaryBufferSize;
+            }
+            DWORD BytesBetween = WriteCursor - PlayCursor;
+
             // Une sortie debug pour vérifier le son
             char TextBuffer[256];
             _snprintf_s(
               TextBuffer,
               sizeof(TextBuffer),
-              "LPC:%u BTL:%u TC:%u BTW:%u - PC:%u WC:%u\n",
+              "LPC:%u BTL:%u TC:%u BTW:%u - PC:%u WC:%u DELTA:%u\n",
               LastPlayCursor, ByteToLock, TargetCursor,
-              BytesToWrite, PlayCursor, WriteCursor);
+              BytesToWrite, PlayCursor, WriteCursor, BytesBetween);
             OutputDebugStringA(TextBuffer);
 #endif
             Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
