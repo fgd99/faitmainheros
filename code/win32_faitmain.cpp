@@ -1076,6 +1076,7 @@ WinMain(HINSTANCE Instance,
           // On regarde la syncro audio en mode debug
 #if FAITMAIN_INTERNAL
           {
+            Assert(DebugTimeMarkerIndex < ArrayCount(DebugTimeMarkers));
             win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex++];
             if(DebugTimeMarkerIndex >= ArrayCount(DebugTimeMarkers))
             {
