@@ -1077,7 +1077,7 @@ WinMain(HINSTANCE Instance,
 #if FAITMAIN_INTERNAL
           {
             win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex++];
-            if(DebugTimeMarkerIndex > ArrayCount(DebugTimeMarkers))
+            if(DebugTimeMarkerIndex >= ArrayCount(DebugTimeMarkers))
             {
               DebugTimeMarkerIndex = 0;
             }
