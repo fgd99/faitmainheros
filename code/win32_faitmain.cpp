@@ -642,20 +642,33 @@ Win32DrawSoundBuffer(win32_offscreen_buffer *BackBuffer,
 internal void
 Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
                       int MarkerCount, win32_debug_time_marker *Markers,
+                      int CurrentMarkerIndex,
                       win32_sound_output *SoundOutput,
                       real32 TargetSecondsPerFrame)
 {
   int PadX = 16;
   int PadY = 16;
-  int Top = PadY;
-  int Bottom = BackBuffer->Height - PadY;
+
+  int LineHeight = 64;
+
   real32 C = (real32)(BackBuffer->Width - 2*PadX) / (real32)SoundOutput->SecondaryBufferSize;
   for(int MarkerIndex = 0; MarkerIndex < MarkerCount; ++MarkerIndex)
   {
+    DWORD PlayColor = 0xFFFFFFFF;
+    DWORD WriteColor = 0xFFFF0000;
+
+    int Top = PadY;
+    int Bottom = PadY + LineHeight;
+    if(MarkerIndex == CurrentMarkerIndex)
+    {
+      Top += PadY + LineHeight;
+      Bottom += PadY + LineHeight;
+    }
+
     win32_debug_time_marker *ThisMarker = &Markers[MarkerIndex];
     Assert(ThisMarker->PlayCursor < SoundOutput->SecondaryBufferSize);
-    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->PlayCursor, 0xFFFFFFFF);
-    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->WriteCursor, 0xFFFF0000);
+    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->PlayCursor, PlayColor);
+    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->WriteCursor, WriteColor);
   }
 }
 
@@ -1093,6 +1106,7 @@ WinMain(HINSTANCE Instance,
             &GlobalBackBuffer,
             ArrayCount(DebugTimeMarkers),
             DebugTimeMarkers,
+            DebugTimeMarkerIndex - 1, // Faux à l'index 0 mais ce n'est pas grave pour le moment
             &SoundOutput,
             TargetSecondsPerFrame);
 #endif
