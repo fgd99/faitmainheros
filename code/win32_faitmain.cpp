@@ -615,16 +615,22 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
 }
 
 internal void
-Win32DebugDrawVertical(win32_offscreen_buffer *GlobalBackBuffer,
+Win32DebugDrawVertical(win32_offscreen_buffer *BackBuffer,
                        int X, int Top, int Bottom, uint32 Color)
 {
-  uint8 *Pixel = ((uint8*)GlobalBackBuffer->Memory
-                  + X * GlobalBackBuffer->BytesPerPixel
-                  + Top * GlobalBackBuffer->Pitch);
-  for(int Y = Top; Y < Bottom; ++Y)
+  // On ne dessine que si on est bien dans le cadre du buffer
+  if(Top <= 0) Top = 0;
+  if(Bottom > BackBuffer->Height) Bottom = BackBuffer->Height;
+  if((X >=0) && (X < BackBuffer->Width))
   {
-      *(uint32*)Pixel = Color;
-      Pixel += GlobalBackBuffer->Pitch;
+    uint8 *Pixel = ((uint8*)BackBuffer->Memory
+                    + X * BackBuffer->BytesPerPixel
+                    + Top * BackBuffer->Pitch);
+    for(int Y = Top; Y < Bottom; ++Y)
+    {
+        *(uint32*)Pixel = Color;
+        Pixel += BackBuffer->Pitch;
+    }
   }
 }
 
@@ -654,6 +660,13 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
   real32 C = (real32)(BackBuffer->Width - 2*PadX) / (real32)SoundOutput->SecondaryBufferSize;
   for(int MarkerIndex = 0; MarkerIndex < MarkerCount; ++MarkerIndex)
   {
+    win32_debug_time_marker *ThisMarker = &Markers[MarkerIndex];
+    Assert(ThisMarker->OutputPlayCursor < SoundOutput->SecondaryBufferSize);
+    Assert(ThisMarker->OutputWriteCursor < SoundOutput->SecondaryBufferSize);
+    Assert(ThisMarker->OutputLocation < SoundOutput->SecondaryBufferSize);
+    Assert(ThisMarker->FlipPlayCursor < SoundOutput->SecondaryBufferSize);
+    Assert(ThisMarker->FlipWriteCursor < SoundOutput->SecondaryBufferSize);
+
     DWORD PlayColor = 0xFFFFFFFF;
     DWORD WriteColor = 0xFFFF0000;
 
@@ -663,12 +676,22 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
     {
       Top += PadY + LineHeight;
       Bottom += PadY + LineHeight;
-    }
 
-    win32_debug_time_marker *ThisMarker = &Markers[MarkerIndex];
-    Assert(ThisMarker->PlayCursor < SoundOutput->SecondaryBufferSize);
-    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->PlayCursor, PlayColor);
-    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->WriteCursor, WriteColor);
+      Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->OutputPlayCursor, PlayColor);
+      Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->OutputWriteCursor, WriteColor);
+
+      Top += PadY + LineHeight;
+      Bottom += PadY + LineHeight;
+
+      Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->OutputLocation, PlayColor);
+      Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->OutputLocation + ThisMarker->OutputByteCount, WriteColor);
+
+      Top += PadY + LineHeight;
+      Bottom += PadY + LineHeight;
+    }
+    Assert(ThisMarker->FlipPlayCursor < SoundOutput->SecondaryBufferSize);
+    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->FlipPlayCursor, PlayColor);
+    Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->FlipWriteCursor, WriteColor);
   }
 }
 
@@ -974,7 +997,6 @@ WinMain(HINSTANCE Instance,
                samples en plus par sécurité (marge de sécurité d'environ 1ms ou plus),
                quelque soit les variations de framerate.
             */
-            
             if(!SoundIsValid)
             {
               SoundOutput.RunningSampleIndex = WriteCursor / SoundOutput.BytesPerSample;
@@ -1030,9 +1052,11 @@ WinMain(HINSTANCE Instance,
             GameGetSoundSamples(&GameMemory, &SoundBuffer);
 
 #if FAITMAIN_INTERNAL
-            DWORD PlayCursor;
-            DWORD WriteCursor;
-            GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
+            win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex];
+            Marker->OutputPlayCursor = PlayCursor;
+            Marker->OutputWriteCursor = WriteCursor;
+            Marker->OutputLocation = ByteToLock;
+            Marker->OutputByteCount = BytesToWrite;
 
             // c'est un buffer circulaire, c'est plus compliqué pour mesurer l'écart
             DWORD UnwrappedWriteCursor = WriteCursor;
@@ -1124,14 +1148,15 @@ WinMain(HINSTANCE Instance,
             if(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor) == DS_OK)
             {
               Assert(DebugTimeMarkerIndex < ArrayCount(DebugTimeMarkers));
-              win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex++];
-              if(DebugTimeMarkerIndex >= ArrayCount(DebugTimeMarkers))
-              {
-                DebugTimeMarkerIndex = 0;
-              }
-              Marker->PlayCursor = PlayCursor;
-              Marker->WriteCursor = WriteCursor;
+              win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex];
+              Marker->FlipPlayCursor = PlayCursor;
+              Marker->FlipWriteCursor = WriteCursor;
             }
+          }
+          ++DebugTimeMarkerIndex;
+          if(DebugTimeMarkerIndex >= ArrayCount(DebugTimeMarkers))
+          {
+            DebugTimeMarkerIndex = 0;
           }
 #endif
 
