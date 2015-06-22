@@ -979,7 +979,7 @@ WinMain(HINSTANCE Instance,
             DWORD ExpectedFrameBoundaryByte = PlayCursor + ExpectedSoundBytesPerFrame;
 
             DWORD SafeWriteCursor = WriteCursor;
-            if(SafeWriteCursor < WriteCursor)
+            if(SafeWriteCursor < PlayCursor)
             {
               SafeWriteCursor += SoundOutput.SecondaryBufferSize;
             }
