@@ -5,7 +5,6 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
   local_persist real32 tSine;
   int16 ToneVolume = 3000;
-  // int ToneHz = 256;
   int WavePeriod = SoundBuffer->SamplesPerSecond / ToneHz;
 
   int16 *SampleOut = SoundBuffer->Samples;
@@ -71,8 +70,7 @@ GameShutdown(game_state *GameState)
 internal void
 GameUpdateAndRender(game_memory *Memory,
                     game_input *Input,
-                    game_offscreen_buffer *Buffer,
-                    game_sound_output_buffer *SoundBuffer)
+                    game_offscreen_buffer *Buffer)
 {
   // On vérifie que l'on a alloué assez de mémoire pour le jeu
   Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
@@ -125,6 +123,15 @@ GameUpdateAndRender(game_memory *Memory,
     }
   }
 
-  GameOutputSound(SoundBuffer, GameState->ToneHz);
+  
   RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+}
+
+internal void
+GameGetSoundSamples(
+  game_memory *Memory,
+  game_sound_output_buffer *SoundBuffer)
+{
+  game_state *GameState = (game_state*)Memory->PermanentStorage;
+  GameOutputSound(SoundBuffer, GameState->ToneHz);
 }

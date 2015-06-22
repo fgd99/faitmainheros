@@ -132,7 +132,9 @@ struct game_memory
 // Cette fonction va avoir besoin des informations de timing, du controlleur, le bitmap buffer et le sound buffer
 internal void GameUpdateAndRender(game_memory *Memory,
                                   game_input *Input,
-                                  game_offscreen_buffer *Buffer,
+                                  game_offscreen_buffer *Buffer);
+
+internal void GameGetSoundSamples(game_memory *Memory,
                                   game_sound_output_buffer *SoundBuffer);
 
 #define FAITMAIN_H
