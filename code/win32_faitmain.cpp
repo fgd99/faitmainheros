@@ -671,11 +671,13 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
     Assert(ThisMarker->OutputPlayCursor < SoundOutput->SecondaryBufferSize);
     Assert(ThisMarker->OutputWriteCursor < SoundOutput->SecondaryBufferSize);
     Assert(ThisMarker->OutputLocation < SoundOutput->SecondaryBufferSize);
+    Assert(ThisMarker->OutputByteCount < SoundOutput->SecondaryBufferSize);
     Assert(ThisMarker->FlipPlayCursor < SoundOutput->SecondaryBufferSize);
     Assert(ThisMarker->FlipWriteCursor < SoundOutput->SecondaryBufferSize);
 
     DWORD PlayColor = 0xFFFFFFFF;
     DWORD WriteColor = 0xFFFF0000;
+    DWORD ExpectedFlipColor = 0xFFFFFF00;
 
     int Top = PadY;
     int Bottom = PadY + LineHeight;
@@ -683,6 +685,8 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
     {
       Top += PadY + LineHeight;
       Bottom += PadY + LineHeight;
+
+      int FirstTop = Top;
 
       Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->OutputPlayCursor, PlayColor);
       Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->OutputWriteCursor, WriteColor);
@@ -695,6 +699,8 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *BackBuffer,
 
       Top += PadY + LineHeight;
       Bottom += PadY + LineHeight;
+
+      Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, FirstTop, Bottom, ThisMarker->ExpectedFlipPlayCursor, ExpectedFlipColor);
     }
     Assert(ThisMarker->FlipPlayCursor < SoundOutput->SecondaryBufferSize);
     Win32DrawSoundBuffer(BackBuffer, SoundOutput, C, PadX, Top, Bottom, ThisMarker->FlipPlayCursor, PlayColor);
@@ -827,6 +833,7 @@ WinMain(HINSTANCE Instance,
 
         // Gestion du timing
         LARGE_INTEGER LastCounter = Win32GetWallClock();
+        LARGE_INTEGER FlipWallClock = Win32GetWallClock();
 
         // Pour le debug de la syncro audio
         int DebugTimeMarkerIndex = 0;
@@ -983,6 +990,9 @@ WinMain(HINSTANCE Instance,
                                 NewInput,
                                 &Buffer);
 
+            LARGE_INTEGER AudioWallClock = Win32GetWallClock();
+            real32 FromBeginToAudioSeconds = Win32GetSecondsElapsed(FlipWallClock, AudioWallClock);
+
             DWORD PlayCursor;
             DWORD WriteCursor;
             if(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor) == DS_OK)
@@ -1021,6 +1031,8 @@ WinMain(HINSTANCE Instance,
             
               DWORD ExpectedSoundBytesPerFrame = (SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample) /
                                                   GameUpdateHz;
+              real32 SecondsLeftUntilFlip = (TargetSecondsPerFrame - FromBeginToAudioSeconds);
+              DWORD ExpectedBytesUntilFlip = (DWORD)((SecondsLeftUntilFlip/TargetSecondsPerFrame)*(real32)ExpectedSoundBytesPerFrame);
               DWORD ExpectedFrameBoundaryByte = PlayCursor + ExpectedSoundBytesPerFrame;
 
               DWORD SafeWriteCursor = WriteCursor;
@@ -1067,6 +1079,7 @@ WinMain(HINSTANCE Instance,
               Marker->OutputWriteCursor = WriteCursor;
               Marker->OutputLocation = ByteToLock;
               Marker->OutputByteCount = BytesToWrite;
+              Marker->ExpectedFlipPlayCursor = ExpectedFrameBoundaryByte;
 
               // c'est un buffer circulaire, c'est plus compliqué pour mesurer l'écart
               DWORD UnwrappedWriteCursor = WriteCursor;
@@ -1149,6 +1162,8 @@ WinMain(HINSTANCE Instance,
           
             // PROBLEME avec ce RealeaseDC, à vérifier
             // ReleaseDC(Window, DeviceContext);
+
+            LARGE_INTEGER FlipWallClock = Win32GetWallClock();
 
             // On regarde la syncro audio en mode debug
   #if FAITMAIN_INTERNAL
