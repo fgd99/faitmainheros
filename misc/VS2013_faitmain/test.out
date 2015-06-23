@@ -5,7 +5,6 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
   local_persist real32 tSine;
   int16 ToneVolume = 3000;
-  // int ToneHz = 256;
   int WavePeriod = SoundBuffer->SamplesPerSecond / ToneHz;
 
   int16 *SampleOut = SoundBuffer->Samples;
@@ -16,6 +15,11 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
     *SampleOut++ = SampleValue;
     *SampleOut++ = SampleValue;
     tSine += (real32)(2.0f * PI32 * 1.0f / (real32)WavePeriod);
+    // A partir d'un moment sinf perd sa précision quand les chiffres sont très hauts
+    if(tSine > 2.0f*PI32)
+    {
+      tSine -= 2.0f*PI32;
+    }
   }
 }
 
@@ -57,7 +61,7 @@ GameStartup(void)
   {
     GameState->BlueOffset = 0;
     GameState->GreenOffset = 0;
-    GameState->ToneHz = 256;
+    GameState->ToneHz = 512;
   }
   return(GameState);
 }
@@ -71,10 +75,14 @@ GameShutdown(game_state *GameState)
 internal void
 GameUpdateAndRender(game_memory *Memory,
                     game_input *Input,
-                    game_offscreen_buffer *Buffer,
-                    game_sound_output_buffer *SoundBuffer)
+                    game_offscreen_buffer *Buffer)
 {
+  // On vérifie que l'on a alloué assez de mémoire pour le jeu
   Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+  // On vérifie que la structure des boutons des controllers est bien définie
+  Assert(
+    (&Input->Controllers[0].Start - &Input->Controllers[0].Buttons[0])
+    == ArrayCount(Input->Controllers[0].Buttons) - 1);
 
   game_state *GameState = (game_state*)Memory->PermanentStorage;
   if (!Memory->IsInitialized)
@@ -88,28 +96,47 @@ GameUpdateAndRender(game_memory *Memory,
       DEBUGPlatformFreeFileMemory(File.Contents);
     }
 
-    GameState->ToneHz = 256;
+    GameState->ToneHz = 512;
     GameState->BlueOffset = 0;
     GameState->GreenOffset = 0;
     Memory->IsInitialized = true;
   }
 
-  game_controller_input *Input0 = &Input->Controllers[0];
-  // Gestion des entrées
-  if (Input0->IsAnalog)
+  for (int ControllerIndex = 0;
+       ControllerIndex < ArrayCount(Input->Controllers);
+       ++ControllerIndex)
   {
-    GameState->BlueOffset += (int)(4.0f*Input0->EndX);
-    GameState->ToneHz = 256 + (int)(128.0f * Input0->EndY);
-  }
-  else
-  {
-    if (Input0->Up.EndedDown) GameState->BlueOffset += 10;
+    game_controller_input *Controller = GetController(Input, ControllerIndex);
+    // Gestion des entrées
+    if (Controller->IsAnalog)
+    {
+      GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
+      GameState->ToneHz = 512 + (int)(128.0f * Controller->StickAverageY);
+    }
+    else
+    {
+      if (Controller->MoveUp.EndedDown) GameState->GreenOffset += 10;
+      if (Controller->MoveDown.EndedDown) GameState->GreenOffset -= 10;
+      if (Controller->MoveRight.EndedDown) {
+        GameState->ToneHz += 10;
+        GameState->BlueOffset += 10;
+      }
+      if (Controller->MoveLeft.EndedDown) {
+        GameState->ToneHz -= 10;
+        GameState->BlueOffset -= 10;
+      }
+    }
   }
 
-  if (Input0->Down.EndedDown) GameState->GreenOffset += 10;
-  if (Input0->Right.EndedDown) GameState->ToneHz += 10;
-  if (Input0->Left.EndedDown) GameState->ToneHz -= 10;
-
-  GameOutputSound(SoundBuffer, GameState->ToneHz);
+  
   RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+}
+
+internal void
+GameGetSoundSamples(
+  game_memory *Memory,
+  game_sound_output_buffer *SoundBuffer)
+{
+  game_state *GameState = (game_state*)Memory->PermanentStorage;
+  GameOutputSound(SoundBuffer, GameState->ToneHz);
 }
