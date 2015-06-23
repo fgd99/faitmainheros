@@ -56,7 +56,7 @@ GameStartup(void)
   {
     GameState->BlueOffset = 0;
     GameState->GreenOffset = 0;
-    GameState->ToneHz = 256;
+    GameState->ToneHz = 512;
   }
   return(GameState);
 }
@@ -91,7 +91,7 @@ GameUpdateAndRender(game_memory *Memory,
       DEBUGPlatformFreeFileMemory(File.Contents);
     }
 
-    GameState->ToneHz = 256;
+    GameState->ToneHz = 512;
     GameState->BlueOffset = 0;
     GameState->GreenOffset = 0;
     Memory->IsInitialized = true;
@@ -106,7 +106,7 @@ GameUpdateAndRender(game_memory *Memory,
     if (Controller->IsAnalog)
     {
       GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
-      GameState->ToneHz = 256 + (int)(128.0f * Controller->StickAverageY);
+      GameState->ToneHz = 512 + (int)(128.0f * Controller->StickAverageY);
     }
     else
     {
