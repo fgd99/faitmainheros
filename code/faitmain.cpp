@@ -15,6 +15,11 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
     *SampleOut++ = SampleValue;
     *SampleOut++ = SampleValue;
     tSine += (real32)(2.0f * PI32 * 1.0f / (real32)WavePeriod);
+    // A partir d'un moment sinf perd sa précision quand les chiffres sont très hauts
+    if(tSine > 2.0f*PI32)
+    {
+      tSine -= 2.0f*PI32;
+    }
   }
 }
 
