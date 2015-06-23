@@ -10,3 +10,5 @@ misc/VS2013_faitmain/Debug/
 *.zedstate
 *.opensdf
 *.out
+*.out
+misc/VS2013_faitmain/test.out
