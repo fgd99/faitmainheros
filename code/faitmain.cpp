@@ -1,6 +1,6 @@
 #include "faitmain.h"
 
-internal void
+void
 GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
   local_persist real32 tSine;
@@ -24,7 +24,7 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 }
 
 /* Fonction qui va dessiner dans le backbuffer un gradient de couleur étrange */
-internal void
+void
 RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset)
 {
   // on va se déplacer dans la mémoire par pas de 8 bits
@@ -52,30 +52,8 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset)
     Row += Buffer->Pitch; // Ligne suivante
   }
 }
-/*
-internal game_state *
-GameStartup(void)
-{
-  game_state *GameState = new game_state;
-  if (GameState)
-  {
-    GameState->BlueOffset = 0;
-    GameState->GreenOffset = 0;
-    GameState->ToneHz = 512;
-  }
-  return(GameState);
-}
 
-internal void
-GameShutdown(game_state *GameState)
-{
-  delete GameState;
-}
-*/
-internal void
-GameUpdateAndRender(game_memory *Memory,
-                    game_input *Input,
-                    game_offscreen_buffer *Buffer)
+GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
   // On vérifie que l'on a alloué assez de mémoire pour le jeu
   Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
@@ -89,11 +67,11 @@ GameUpdateAndRender(game_memory *Memory,
   {
     char *Filename = __FILE__; // Le nom du fichier source en cours
 
-    debug_read_file_result File = DEBUGPlatformReadEntireFile(Filename);
+    debug_read_file_result File = Memory->DEBUGPlatformReadEntireFile(Filename);
     if (File.Contents)
     {
-      DEBUGPlatformWriteEntireFile("test.out", File.ContentsSize, File.Contents);
-      DEBUGPlatformFreeFileMemory(File.Contents);
+      Memory->DEBUGPlatformWriteEntireFile("test.out", File.ContentsSize, File.Contents);
+      Memory->DEBUGPlatformFreeFileMemory(File.Contents);
     }
 
     GameState->ToneHz = 512;
@@ -132,10 +110,7 @@ GameUpdateAndRender(game_memory *Memory,
   RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 }
 
-internal void
-GameGetSoundSamples(
-  game_memory *Memory,
-  game_sound_output_buffer *SoundBuffer)
+GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 {
   game_state *GameState = (game_state*)Memory->PermanentStorage;
   GameOutputSound(SoundBuffer, GameState->ToneHz);

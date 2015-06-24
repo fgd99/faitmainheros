@@ -26,13 +26,14 @@ typedef float real32;
 typedef double real64;
 
 // Implémentation du coeur du jeu indépendemment de la plateforme
-#include "faitmain.cpp"
+#include "faitmain.h"
 
 // Includes spécifiques à la plateforme
 #include <Windows.h>
 #include <Xinput.h> // Pour la gestion des entrées (manette...)
 #include <dsound.h> // Pour jouer du son avec DirectSound
 #include <stdio.h>
+
 #include "win32_faitmain.h"
 
 // variables globales pour le moment, on gèrera autrement plus tard
@@ -50,6 +51,37 @@ Win32GetWindowDimension(HWND Window) {
   GetClientRect(Window, &ClientRect);
   Result.Width = ClientRect.right - ClientRect.left;
   Result.Height = ClientRect.bottom - ClientRect.top;
+  return(Result);
+}
+
+// Ici on définit des pointeurs vers les fonctions du moteur de jeu
+// chargées depuis une DLL
+struct win32_game_code
+{
+  HMODULE GameCodeDLL;
+  game_update_and_render *UpdateAndRender;
+  game_get_sound_samples *GetSoundSamples;
+  bool32 IsValid;
+};
+
+internal win32_game_code
+Win32LoadGameCode(void)
+{
+  win32_game_code Result = {};
+  Result.GameCodeDLL = LoadLibraryA("faitmain.dll");
+  if(Result.GameCodeDLL)
+  {
+    Result.UpdateAndRender = (game_update_and_render*)
+      GetProcAddress(Result.GameCodeDLL, "GameUpdateAndRender");
+    Result.GetSoundSamples = (game_get_sound_samples*)
+      GetProcAddress(Result.GameCodeDLL, "GameGetSoundSamples");
+    Result.IsValid = (Result.UpdateAndRender && Result.GetSoundSamples);
+  }
+  if(!Result.IsValid)
+  {
+    Result.UpdateAndRender = GameUpdateAndRenderStub;
+    Result.GetSoundSamples = GameGetSoundSamplesStub;
+  }
   return(Result);
 }
 
@@ -101,8 +133,15 @@ Win32LoadXInput(void) {
  * Implémentation des fonctions spécifiques à la plateforme
  * déclarées dans faitmain.h
  **/
-internal debug_read_file_result
-DEBUGPlatformReadEntireFile(char *Filename)
+DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUGPlatformFreeFileMemory)
+{
+  if(Memory)
+  {
+    VirtualFree(Memory, 0, MEM_RELEASE);
+  }
+}
+
+DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
 {
   debug_read_file_result Result = {};
   HANDLE FileHandle = CreateFileA(
@@ -142,17 +181,7 @@ DEBUGPlatformReadEntireFile(char *Filename)
   return(Result);
 }
 
-internal void
-DEBUGPlatformFreeFileMemory(void *Memory)
-{
-  if(Memory)
-  {
-    VirtualFree(Memory, 0, MEM_RELEASE);
-  }
-}
-
-internal bool32
-DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void *Memory)
+DEBUG_PLATEFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile)
 {
   bool32 Result = false;
   HANDLE FileHandle = CreateFileA(
@@ -720,6 +749,8 @@ WinMain(HINSTANCE Instance,
         LPSTR CommandLine,
         int ShowCode)
 {
+  win32_game_code Game = Win32LoadGameCode();
+
   // QueryPerformanceFrequency va permettre de connaître la fréquence associée à QueryPerformanceCounter
   // et nous permettre d'avoir le nombre d'images par seconde.
   LARGE_INTEGER PerfCountFrequencyResult;
@@ -988,9 +1019,7 @@ WinMain(HINSTANCE Instance,
             Buffer.Pitch = GlobalBackBuffer.Pitch;
 
             // On demande au moteur de jeu de générer les graphismes et le son
-            GameUpdateAndRender(&GameMemory,
-                                NewInput,
-                                &Buffer);
+            Game.UpdateAndRender(&GameMemory, NewInput, &Buffer);
 
             LARGE_INTEGER AudioWallClock = Win32GetWallClock();
             real32 FromBeginToAudioSeconds = Win32GetSecondsElapsed(FlipWallClock, AudioWallClock);
@@ -1073,7 +1102,7 @@ WinMain(HINSTANCE Instance,
               SoundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
               SoundBuffer.SampleCount = BytesToWrite / SoundOutput.BytesPerSample;
               SoundBuffer.Samples = Samples;
-              GameGetSoundSamples(&GameMemory, &SoundBuffer);
+              Game.GetSoundSamples(&GameMemory, &SoundBuffer);
 
   #if FAITMAIN_INTERNAL
               win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex];

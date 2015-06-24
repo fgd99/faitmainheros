@@ -10,6 +10,7 @@ REM Compilation 32 bits
 REM cl %CommonCompilerFlags% ..\code\win32_faitmain.cpp /link -subsystem:windows,5.1 %CommonLinkerFlags%
 
 REM Compilation 64 bits
+cl %CommonCompilerFlags% ..\code\faitmain.cpp /link /DLL
 cl %CommonCompilerFlags% ..\code\win32_faitmain.cpp /link %CommonLinkerFlags%
 
 popd
